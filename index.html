@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="Adapt3R">
+  <meta name="keywords" content="Adapt3R">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Adapt3R: Adaptive 3D Scene Representation for Domain Transfer in Imitation Learning</title>
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="./static/images/favicon.svg">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+</head>
+<body>
+
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">Adapt3R: Adaptive 3D Scene Representation for Domain Transfer in Imitation Learning</h1>
+          <div class="is-size-5 publication-authors">
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            <!-- Albert Wilcox, Mohamed Ghanem, Masoud Moghani, Pierre Barroso, Benjamin Joffe, Animesh Garg -->
+            <span class="author-block">
+              <a href="https://albertwilcox.github.io/">Albert Wilcox</a><sup>1,2</sup>,</span>
+            <span class="author-block">
+              <a href="https://www.linkedin.com/in/mohghanem/">Mohamed Ghanem</a><sup>1</sup>,</span>
+            <span class="author-block">
+              <a href="https://masoudmoghani.com/">Masoud Moghani</a><sup>3</sup>,</span>
+            <span class="author-block">
+              <a href="https://www.linkedin.com/in/pierre-barroso/">Pierre Barroso</a><sup>2</sup>,</span>
+            <span class="author-block">
+              <a href="https://www.linkedin.com/in/bpjoffe/">Benjamin Joffe</a><sup>1,2</sup>,</span>
+            <span class="author-block">
+              <a href="https://animesh.garg.tech/">Animesh Garg</a><sup>1</sup></span>
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>Georgia Institute of Technology,</span>
+            <span class="author-block"><sup>2</sup>Georgia Tech Research Institute,</span>
+            <span class="author-block"><sup>3</sup>University of Toronto</span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2503.04877"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+              <!-- Video Link. -->
+              <!-- <span class="link-block">
+                <a href=""
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-youtube"></i>
+                  </span>
+                  <span>Video</span>
+                </a>
+              </span> -->
+              <!-- Code Link. -->
+              <span class="link-block">
+                <a href="https://github.com/pairlab/Adapt3R"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-github"></i>
+                  </span>
+                  <span>Code</span>
+                  </a>
+              </span>
+             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <video id="teaser" autoplay muted loop playsinline height="100%">
+        <source src="./static/videos/adapt3r-teaser-vid.mp4"
+                type="video/mp4">
+      </video>
+      <h2 class="subtitle has-text-centered">
+        <b>TL;DR</b> Adapt3R is a 3D perception encoder that, combined with any of a variety of IL algorithms, enables zero-shot transfer to unseen embodiments and camera viewpoints.
+      </h2>
+   </div>
+  </div>
+</section>
+
+
+<section class="hero is-light is-small">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <!-- Abstract. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Abstract</h2>
+          <div class="content has-text-justified">
+            <p>
+              Imitation learning (IL) is a compelling method for training robots to complete a wide variety of manipulation tasks. 
+              While many modern IL algorithms use RGB observations as a default, several recent works have shown that 3D scene 
+              representations lifted from calibrated RGBD cameras can be useful for completing more complicated tasks, generalizing 
+              between camera viewpoints, generalizing to new instances of objects, and learning in low-data regimes. 
+              However, these works generally either focus on 3D keyframe prediction, utilize the scene information in a way that is 
+              highly specific to one action decoder, or omit semantic information important to task success. 
+              In this work, we argue that these 3D scene representations are useful for a variety of IL algorithms, even those originally
+              designed to work with 2D inputs. To that end, we introduce Adaptive 3D Scene Representation (Adapt3R), a general-purpose 3D observation encoder. 
+              Adapt3R uses a novel architecture to synthesize data from one or more depth cameras into a single vector which can then
+              be used as conditioning for a variety of IL algorithms. 
+              We show that when combined with SOTA multitask IL algorithms, Adapt3R maintains their multitask learning capacity 
+              while enabling zero-shot transfer to novel embodiments and camera poses. 
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <video id="architecture" autoplay muted loop playsinline height="100%">
+        <source src="./static/videos/architecture.mp4"
+                type="video/mp4">
+      </video>
+      <div class="content has-text-justified">
+        <p>
+          Adapt3R is a unified method for extracting scene representations from RGBD 
+          inputs for imitation learning, and is designed to work well with a variety 
+          of state-of-the-art imitation learning algorithms. It starts by lifting 
+          pre-trained foundation model features on RGBD inputs into a 3D scene representation. 
+          Then, after a carefully designed point cloud processing step, it uses attention 
+          pooling to compress the point cloud into a single vector z which can be used
+          as conditioning for a policy in an end-to-end learning setup.
+        </p>
+      </div>
+   </div>
+  </div>
+</section>
+
+
+<hr style="border: 1px solid #ffffff">
+
+
+<section class="hero is-light is-small">
+  <div class="hero-body">
+    <div class="container">
+      <h2 class="title is-3">Real Robot Videos</h2>
+      <h2 class="subtitle">
+        We train a language-conditioned multitask Adapt3R policy to complete 6 tasks on a real UR5 robot.
+      </h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-apple_in_bowl">
+          <video poster="" id="apple_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/apple_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-apple_in_cup">
+          <video poster="" id="apple_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/apple_in_cup.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-grapes_in_bowl">
+          <video poster="" id="grapes_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/grapes_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-banana_in_bowl">
+          <video poster="" id="banana_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/banana_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-bowl_in_bowl">
+          <video poster="" id="bowl_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/bowl_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-cup_in_cup">
+          <video poster="" id="cup_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/cup_in_cup.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+      <hr>
+      <h2 class="title is-4">Unseen Viewpoint</h2>
+      <h2 class="subtitle">
+        Adapt3R enables zero-shot transfer to a novel viewpoint which views the scene from a completely different angle.
+      </h2>
+      <hr>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-apple_in_bowl">
+          <video poster="" id="apple_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/apple_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-apple_in_cup">
+          <video poster="" id="apple_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/apple_in_cup.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-grapes_in_bowl">
+          <video poster="" id="grapes_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/grapes_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-banana_in_bowl">
+          <video poster="" id="banana_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/banana_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-bowl_in_bowl">
+          <video poster="" id="bowl_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/bowl_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-cup_in_cup">
+          <video poster="" id="cup_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/cup_in_cup.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr style="border: 1px solid #ffffff">
+
+<section class="hero is-light is-small">
+  <div class="hero-body">
+    <div class="container">
+      <h2 class="title is-4">LIBERO-90 Videos</h2>
+      <h2 class="subtitle">
+        We train a multitask Adapt3R policy to complete 90 tasks from the LIBERO-90 benchmark.
+      </h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it">
+          <video poster="" id="KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/mt/KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it">
+          <video posterKITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_itid="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/mt/KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/mt/KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/mt/KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it">
+          <video poster="" id="KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/mt/KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket">
+          <video poster="" id="LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/mt/LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray">
+          <video poster="" id="LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/mt/LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate">
+          <video poster="" id="LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/mt/LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy">
+          <video poster="" id="STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/mt/STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf">
+          <video poster="" id="STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/mt/STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+      <hr>
+      <hr>
+      <h2 class="title is-4">Novel Embodiment</h2>
+      <h2 class="subtitle">
+        After training only with the Franka Panda robot, Adapt3R enables zero-shot transfer to novel embodiments.
+      </h2>
+      <hr>
+      <h2 class="title is-5">Kinova3</h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it">
+          <video poster="" id="KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/Kinova3/KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it">
+          <video posterKITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_itid="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/Kinova3/KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/Kinova3/KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/Kinova3/KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it">
+          <video poster="" id="KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/Kinova3/KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket">
+          <video poster="" id="LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/Kinova3/LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray">
+          <video poster="" id="LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/Kinova3/LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate">
+          <video poster="" id="LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/Kinova3/LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy">
+          <video poster="" id="STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/Kinova3/STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf">
+          <video poster="" id="STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/Kinova3/STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+      <hr>
+      <h2 class="title is-5">UR5e</h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it">
+          <video poster="" id="KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/UR5e/KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it">
+          <video posterKITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_itid="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/UR5e/KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/UR5e/KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/UR5e/KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it">
+          <video poster="" id="KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/UR5e/KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket">
+          <video poster="" id="LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/UR5e/LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray">
+          <video poster="" id="LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/UR5e/LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate">
+          <video poster="" id="LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/UR5e/LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy">
+          <video poster="" id="STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/UR5e/STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf">
+          <video poster="" id="STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/UR5e/STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+      <hr>
+      <h2 class="title is-5">Kuka IIWA</h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it">
+          <video poster="" id="KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/IIWA/KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it">
+          <video posterKITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_itid="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/IIWA/KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/IIWA/KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/IIWA/KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it">
+          <video poster="" id="KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/IIWA/KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket">
+          <video poster="" id="LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/IIWA/LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray">
+          <video poster="" id="LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/IIWA/LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate">
+          <video poster="" id="LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/IIWA/LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy">
+          <video poster="" id="STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/IIWA/STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf">
+          <video poster="" id="STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/IIWA/STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+      <hr>
+      <hr>
+      <h2 class="title is-4">Novel Camera Pose</h2>
+      <h2 class="subtitle">
+        Adapt3R enables zero-shot transfer to new camera poses. Here we show changes with a small, medium and large difference in camera pose.
+      </h2>
+      <hr>
+      <h2 class="title is-5">Small Camera Change</h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it">
+          <video poster="" id="KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/small/KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it">
+          <video posterKITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_itid="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/small/KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/small/KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/small/KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it">
+          <video poster="" id="KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/small/KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket">
+          <video poster="" id="LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/small/LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray">
+          <video poster="" id="LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/small/LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate">
+          <video poster="" id="LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/small/LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy">
+          <video poster="" id="STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/small/STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf">
+          <video poster="" id="STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/small/STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+      <hr>
+      <h2 class="title is-5">Medium Camera Change</h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it">
+          <video poster="" id="KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/medium/KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it">
+          <video posterKITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_itid="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/medium/KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/medium/KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/medium/KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it">
+          <video poster="" id="KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/medium/KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket">
+          <video poster="" id="LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/medium/LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray">
+          <video poster="" id="LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/medium/LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate">
+          <video poster="" id="LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/medium/LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy">
+          <video poster="" id="STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/medium/STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf">
+          <video poster="" id="STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/medium/STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+      <hr>
+      <h2 class="title is-5">Large Camera Change</h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it">
+          <video poster="" id="KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/large/KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it">
+          <video posterKITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_itid="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/large/KITCHEN_SCENE3_turn_on_the_stove_and_put_the_frying_pan_on_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/large/KITCHEN_SCENE4_put_the_black_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet">
+          <video KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet="" id="steve" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/large/KITCHEN_SCENE9_put_the_white_bowl_on_top_of_the_cabinet.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it">
+          <video poster="" id="KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/large/KITCHEN_SCENE10_put_the_butter_at_the_front_in_the_top_drawer_of_the_cabinet_and_close_it.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket">
+          <video poster="" id="LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/large/LIVING_ROOM_SCENE1_pick_up_the_cream_cheese_box_and_put_it_in_the_basket.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray">
+          <video poster="" id="LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/large/LIVING_ROOM_SCENE4_pick_up_the_black_bowl_on_the_left_and_put_it_in_the_tray.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate">
+          <video poster="" id="LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/large/LIVING_ROOM_SCENE6_put_the_chocolate_pudding_to_the_right_of_the_plate.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy">
+          <video poster="" id="STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/large/STUDY_SCENE1_pick_up_the_book_and_place_it_in_the_left_compartment_of_the_caddy.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf">
+          <video poster="" id="STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/large/STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+    <pre>
+<code>@misc{wilcox2025adapt3radaptive3dscene,
+    title={Adapt3R: Adaptive 3D Scene Representation for Domain Transfer in Imitation Learning}, 
+    author={Albert Wilcox and Mohamed Ghanem and Masoud Moghani and Pierre Barroso and Benjamin Joffe and Animesh Garg},
+    year={2025},
+    eprint={2503.04877},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV},
+    url={https://arxiv.org/abs/2503.04877}}</code></pre>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <p>
+            This website is licensed under a <a rel="license"
+                                                href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+          <p>
+            Borrowed from the <a
+              href="https://github.com/nerfies/nerfies.github.io">source code</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
