@@ -1,0 +1,34 @@
+defaults:
+  - task: metaworld_ml45
+  - algo: quest
+  - _self_
+
+
+training:
+  use_tqdm: true
+  n_epochs: 0
+  do_profile: false
+  resume: false
+  load_obs: false
+
+rollout:
+  enabled: true
+  interval: 10
+  rollouts_per_env: 1
+  max_episode_length: ${task.horizon}
+  num_parallel_envs: 1
+  n_video: 1
+
+
+
+exp_name: debug # 
+variant_name: null
+seed: 10000
+device: cuda:0
+output_prefix: ./experiments
+data_prefix: ./data
+make_unique_experiment_dir: true
+allow_no_ckpt: false
+
+checkpoint_path: null
+

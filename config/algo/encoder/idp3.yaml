@@ -1,0 +1,29 @@
+defaults:
+  - lowdim_encoder_factory: mlp
+
+_target_: adapt3r.algos.utils.encoder.HybridEncoder
+shape_meta: ${task.shape_meta}
+lang_embed_dim: ${algo.lang_embed_dim}
+backbone_type: clip
+pointcloud_extractor_factory:
+  _target_: adapt3r.algos.utils.pointnet_extractor.iDP3Encoder
+  _partial_: true
+  out_channels: ${algo.embed_dim}
+  reduction: max
+  h_dim: 128
+  num_layers: 4
+num_points: 512
+hidden_dim: 60
+task_suite_name: ${task.suite_name}
+task_benchmark_name: ${task.benchmark_name}
+finetune: false
+hand_frame: false
+do_crop: true
+tight_crop: true
+do_hand_crop: false
+downsample_mode: none
+xyz_proj_type: none
+do_image: false
+do_lang: false
+
+
