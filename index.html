@@ -206,7 +206,10 @@
 <section class="hero is-light is-small">
   <div class="hero-body">
     <div class="container">
-      <h2 class="title is-3">In-Distribution Rollouts</h2>
+      <h2 class="title is-4">LIBERO-90</h2>
+      <h2 class="subtitle">
+        We train a multitask Adapt3R policy to complete 50 tasks from the LIBERO-90 benchmark.
+      </h2>
       <div id="results-carousel" class="carousel results-carousel">
         <div class="item item-KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it">
           <video poster="" id="KITCHEN_SCENE1_open_the_top_drawer_of_the_cabinet_and_put_the_bowl_in_it" autoplay controls muted loop playsinline height="100%">
@@ -269,8 +272,8 @@
           </video>
         </div>
       </div>
-
-      <h2 class="title is-3">Novel Embodiment</h2>
+      <hr>
+      <h2 class="title is-4">Novel Embodiment</h2>
       <hr>
       <h2 class="subtitle">
         After training only with the Franka Panda robot, Adapt3R enables zero-shot transfer to novel embodiments.
@@ -467,8 +470,8 @@
           </video>
         </div>
       </div>
-
-      <h2 class="title is-3">Novel Camera Pose</h2>
+      <hr>
+      <h2 class="title is-4">Novel Camera Pose</h2>
       <hr>
       <h2 class="subtitle">
         Adapt3R enables zero-shot transfer to new camera poses. Here we show changes with a small, medium and large difference in camera pose.
@@ -661,6 +664,101 @@
         <div class="item item-STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf">
           <video poster="" id="STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf" autoplay controls muted loop playsinline height="100%">
             <source src="./static/videos/large/STUDY_SCENE4_pick_up_the_book_on_the_right_and_place_it_under_the_cabinet_shelf.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="hero is-light is-small">
+  <div class="hero-body">
+    <div class="container">
+      <h2 class="title is-4">Real Robot</h2>
+      <h2 class="subtitle">
+        We train a language-conditioned multitask Adapt3R policy to complete 6 tasks on a real UR5 robot.
+      </h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-apple_in_bowl">
+          <video poster="" id="apple_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/apple_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-apple_in_cup">
+          <video poster="" id="apple_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/apple_in_cup.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-grapes_in_bowl">
+          <video poster="" id="grapes_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/grapes_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-banana_in_bowl">
+          <video poster="" id="banana_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/banana_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-bowl_in_bowl">
+          <video poster="" id="bowl_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/bowl_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-cup_in_cup">
+          <video poster="" id="cup_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/cup_in_cup.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+      <hr>
+      <h2 class="title is-4">Unseen Viewpoint</h2>
+      <hr>
+      <h2 class="subtitle">
+        Adapt3R enables zero-shot transfer to a novel viewpoint which views the scene from a completely different angle.
+      </h2>
+      <hr>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-apple_in_bowl">
+          <video poster="" id="apple_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/apple_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-apple_in_cup">
+          <video poster="" id="apple_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/apple_in_cup.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-grapes_in_bowl">
+          <video poster="" id="grapes_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/grapes_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-banana_in_bowl">
+          <video poster="" id="banana_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/banana_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-bowl_in_bowl">
+          <video poster="" id="bowl_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/bowl_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-cup_in_cup">
+          <video poster="" id="cup_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/cup_in_cup.mp4"
                     type="video/mp4">
           </video>
         </div>
@@ -1081,6 +1179,18 @@
     </div>
   </div>
 </section> -->
+
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+    <pre><code>@article{park2021nerfies,
+  author    = {Park, Keunhong and Sinha, Utkarsh and Barron, Jonathan T. and Bouaziz, Sofien and Goldman, Dan B and Seitz, Steven M. and Martin-Brualla, Ricardo},
+  title     = {Nerfies: Deformable Neural Radiance Fields},
+  journal   = {ICCV},
+  year      = {2021},
+}</code></pre>
+  </div>
+</section>
 
 <footer class="footer">
   <div class="container">
