@@ -50,9 +50,9 @@
             <span class="author-block">
               <a href="https://masoudmoghani.com/">Masoud Moghani</a><sup>3</sup>,</span>
             <span class="author-block">
-              <a href="https://www.linkedin.com/in/pierre-barroso/">Pierre Barroso</a><sup>3</sup>,</span>
+              <a href="https://www.linkedin.com/in/pierre-barroso/">Pierre Barroso</a><sup>2</sup>,</span>
             <span class="author-block">
-              <a href="https://www.linkedin.com/in/bpjoffe/">Benjamin Joffe</a><sup>3</sup>,</span>
+              <a href="https://www.linkedin.com/in/bpjoffe/">Benjamin Joffe</a><sup>2</sup>,</span>
             <span class="author-block">
               <a href="https://animesh.garg.tech/">Animesh Garg</a><sup>1</sup></span>
           </div>
@@ -129,47 +129,49 @@
 
 
 <section class="hero is-light is-small">
-  <div class="container is-max-desktop">
-    <!-- Abstract. -->
-    <div class="columns is-centered has-text-centered">
-      <div class="column is-four-fifths">
-        <h2 class="title is-3">Abstract</h2>
-        <div class="content has-text-justified">
-          <p>
-            Imitation learning (IL) is a compelling method for training robots to complete a wide variety of manipulation tasks. 
-            While many modern IL algorithms use RGB observations as a default, several recent works have shown that 3D scene 
-            representations lifted from calibrated RGBD cameras can be useful for completing more complicated tasks, generalizing 
-            between camera viewpoints, generalizing to new instances of objects, and learning in low-data regimes. 
-            However, these works generally either focus on 3D keyframe prediction, utilize the scene information in a way that is 
-            highly specific to one action decoder, or omit semantic information important to task success. 
-            In this work, we argue that these 3D scene representations are useful for a variety of IL algorithms, even those originally
-            designed to work with 2D inputs. To that end, we introduce Adaptive 3D Scene Representation (Adapt3R), a general-purpose 3D observation encoder. 
-            Adapt3R uses a novel architecture to synthesize data from one or more depth cameras into a single vector which can then
-            be used as conditioning for a variety of IL algorithms. 
-            We show that when combined with SOTA multitask IL algorithms, Adapt3R maintains their multitask learning capacity 
-            while enabling zero-shot transfer to novel embodiments and camera poses. 
-          </p>
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <!-- Abstract. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Abstract</h2>
+          <div class="content has-text-justified">
+            <p>
+              Imitation learning (IL) is a compelling method for training robots to complete a wide variety of manipulation tasks. 
+              While many modern IL algorithms use RGB observations as a default, several recent works have shown that 3D scene 
+              representations lifted from calibrated RGBD cameras can be useful for completing more complicated tasks, generalizing 
+              between camera viewpoints, generalizing to new instances of objects, and learning in low-data regimes. 
+              However, these works generally either focus on 3D keyframe prediction, utilize the scene information in a way that is 
+              highly specific to one action decoder, or omit semantic information important to task success. 
+              In this work, we argue that these 3D scene representations are useful for a variety of IL algorithms, even those originally
+              designed to work with 2D inputs. To that end, we introduce Adaptive 3D Scene Representation (Adapt3R), a general-purpose 3D observation encoder. 
+              Adapt3R uses a novel architecture to synthesize data from one or more depth cameras into a single vector which can then
+              be used as conditioning for a variety of IL algorithms. 
+              We show that when combined with SOTA multitask IL algorithms, Adapt3R maintains their multitask learning capacity 
+              while enabling zero-shot transfer to novel embodiments and camera poses. 
+            </p>
+          </div>
         </div>
       </div>
+      <!--/ Abstract. -->
+
+      <!-- Paper video. -->
+      <!-- <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Video</h2>
+          <div class="publication-video">
+            <iframe src=""
+                    frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+          </div>
+        </div>
+      </div> -->
+      <!--/ Paper video. -->
+
+      <!-- Paper video. -->
+      <!-- <div class="columns is-centered has-text-centered">
+      </div> -->
+      <!--/ Paper video. -->
     </div>
-    <!--/ Abstract. -->
-
-    <!-- Paper video. -->
-    <!-- <div class="columns is-centered has-text-centered">
-      <div class="column is-four-fifths">
-        <h2 class="title is-3">Video</h2>
-        <div class="publication-video">
-          <iframe src=""
-                  frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-        </div>
-      </div>
-    </div> -->
-    <!--/ Paper video. -->
-
-    <!-- Paper video. -->
-    <!-- <div class="columns is-centered has-text-centered">
-    </div> -->
-    <!--/ Paper video. -->
   </div>
 </section>
 
