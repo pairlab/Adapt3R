@@ -1,6 +1,6 @@
 # Adapt3R
 
-This is the repository that contains source code for the [Adapt3R website](https://Adapt3R-model.github.io).
+This is the repository that contains source code for the [Adapt3R website]([https://Adapt3R-model.github.io](https://www.pair.toronto.edu/Adapt3R/)).
 
 
 # Website License
