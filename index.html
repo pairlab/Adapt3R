@@ -6,7 +6,7 @@
         content="Adapt3R">
   <meta name="keywords" content="Adapt3R">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Adapt3R: Unified 3D Scene Representation for Domain Transfer in Imitation Learning</title>
+  <title>Adapt3R: Adaptive 3D Scene Representation for Domain Transfer in Imitation Learning</title>
 
   <!-- Global site tag (gtag.js) - Google Analytics -->
 
@@ -180,11 +180,32 @@
   </div>
 </section> -->
 
-<section class="hero is-small">
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <video id="teaser" autoplay muted loop playsinline height="100%">
+        <source src="./static/videos/architecture.mp4"
+                type="video/mp4">
+      </video>
+      <div class="content has-text-justified">
+        <p>
+          Adapt3R is a unified method for extracting scene representations from RGBD 
+          inputs for imitation learning, and is designed to work well with a variety 
+          of state-of-the-art imitation learning algorithms. It starts by lifting 
+          pre-trained foundation model features on RGBD inputs into a 3D scene representation. 
+          Then, after a carefully designed point cloud processing step, it uses attention 
+          pooling to compress the point cloud into a single vector z which can be used
+          as conditioning for a policy in an end-to-end learning setup.
+        </p>
+      </div>
+   </div>
+  </div>
+</section>
+
+<!-- <section class="hero is-small">
   <div class="hero-body">
     <div class="container">
       <h2 class="title is-3 has-text-centered">Proposed Architecture</h2>
-      <!-- <embed src="static/images/architecture.pdf" width="1100px" height="400px" /> -->
       <img src="static/images/architecture.jpeg" />
       <div class="content has-text-justified">
         <p>
@@ -199,6 +220,102 @@
       </div>
     </div>
   </div>
+</section> -->
+
+<hr style="border: 1px solid #ffffff">
+
+
+<section class="hero is-light is-small">
+  <div class="hero-body">
+    <div class="container">
+      <h2 class="title is-3">Real Robot Videos</h2>
+      <h2 class="subtitle">
+        We train a language-conditioned multitask Adapt3R policy to complete 6 tasks on a real UR5 robot.
+      </h2>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-apple_in_bowl">
+          <video poster="" id="apple_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/apple_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-apple_in_cup">
+          <video poster="" id="apple_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/apple_in_cup.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-grapes_in_bowl">
+          <video poster="" id="grapes_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/grapes_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-banana_in_bowl">
+          <video poster="" id="banana_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/banana_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-bowl_in_bowl">
+          <video poster="" id="bowl_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/bowl_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-cup_in_cup">
+          <video poster="" id="cup_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real/cup_in_cup.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+      <hr>
+      <h2 class="title is-4">Unseen Viewpoint</h2>
+      <h2 class="subtitle">
+        Adapt3R enables zero-shot transfer to a novel viewpoint which views the scene from a completely different angle.
+      </h2>
+      <hr>
+      <div id="results-carousel" class="carousel results-carousel">
+        <div class="item item-apple_in_bowl">
+          <video poster="" id="apple_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/apple_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-apple_in_cup">
+          <video poster="" id="apple_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/apple_in_cup.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-grapes_in_bowl">
+          <video poster="" id="grapes_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/grapes_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-banana_in_bowl">
+          <video poster="" id="banana_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/banana_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-bowl_in_bowl">
+          <video poster="" id="bowl_in_bowl" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/bowl_in_bowl.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-cup_in_cup">
+          <video poster="" id="cup_in_cup" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/real-cam-change/cup_in_cup.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <hr style="border: 1px solid #ffffff">
@@ -206,7 +323,7 @@
 <section class="hero is-light is-small">
   <div class="hero-body">
     <div class="container">
-      <h2 class="title is-4">LIBERO-90</h2>
+      <h2 class="title is-4">LIBERO-90 Videos</h2>
       <h2 class="subtitle">
         We train a multitask Adapt3R policy to complete 50 tasks from the LIBERO-90 benchmark.
       </h2>
@@ -672,101 +789,6 @@
   </div>
 </section>
 
-<hr style="border: 1px solid #ffffff">
-
-
-<section class="hero is-light is-small">
-  <div class="hero-body">
-    <div class="container">
-      <h2 class="title is-3">Real Robot</h2>
-      <h2 class="subtitle">
-        We train a language-conditioned multitask Adapt3R policy to complete 6 tasks on a real UR5 robot.
-      </h2>
-      <div id="results-carousel" class="carousel results-carousel">
-        <div class="item item-apple_in_bowl">
-          <video poster="" id="apple_in_bowl" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real/apple_in_bowl.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-apple_in_cup">
-          <video poster="" id="apple_in_cup" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real/apple_in_cup.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-grapes_in_bowl">
-          <video poster="" id="grapes_in_bowl" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real/grapes_in_bowl.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-banana_in_bowl">
-          <video poster="" id="banana_in_bowl" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real/banana_in_bowl.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-bowl_in_bowl">
-          <video poster="" id="bowl_in_bowl" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real/bowl_in_bowl.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-cup_in_cup">
-          <video poster="" id="cup_in_cup" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real/cup_in_cup.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-      </div>
-      <hr>
-      <h2 class="title is-4">Unseen Viewpoint</h2>
-      <h2 class="subtitle">
-        Adapt3R enables zero-shot transfer to a novel viewpoint which views the scene from a completely different angle.
-      </h2>
-      <hr>
-      <div id="results-carousel" class="carousel results-carousel">
-        <div class="item item-apple_in_bowl">
-          <video poster="" id="apple_in_bowl" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real-cam-change/apple_in_bowl.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-apple_in_cup">
-          <video poster="" id="apple_in_cup" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real-cam-change/apple_in_cup.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-grapes_in_bowl">
-          <video poster="" id="grapes_in_bowl" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real-cam-change/grapes_in_bowl.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-banana_in_bowl">
-          <video poster="" id="banana_in_bowl" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real-cam-change/banana_in_bowl.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-bowl_in_bowl">
-          <video poster="" id="bowl_in_bowl" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real-cam-change/bowl_in_bowl.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-cup_in_cup">
-          <video poster="" id="cup_in_cup" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/real-cam-change/cup_in_cup.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- <hr style="border: 1px solid #333333; margin: 20px 0;"> -->
 <!-- <hr style="border: 1px solid #ffffff">
