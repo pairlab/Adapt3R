@@ -1,0 +1,28 @@
+defaults:
+  - train
+  - _self_
+
+
+make_unique_experiment_dir: true
+logging_folder: prior
+
+train_dataloader:
+  persistent_workers: true
+  # persistent_workers: true
+  pin_memory: false
+  multiprocessing_context: null
+
+training:
+  # training
+  n_epochs: 100
+  use_tqdm: true
+  save_all_checkpoints: false
+
+logging:
+  mode: disabled
+
+task:
+  env_runner:
+    debug: true
+  
+

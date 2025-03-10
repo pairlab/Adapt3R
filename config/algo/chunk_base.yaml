@@ -1,0 +1,12 @@
+defaults:
+  - base
+  - _self_
+
+policy:
+  action_horizon: ${algo.action_horizon}
+  chunk_size: ${algo.chunk_size}
+  temporal_agg: true
+
+
+chunk_size: 16 # this is output action sequence length
+

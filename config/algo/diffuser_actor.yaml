@@ -1,0 +1,57 @@
+defaults:
+  - chunk_base
+  - _self_
+
+name: diffuser_actor
+lr: 0.0001
+weight_decay: 0.0001
+lang_emb_dim: 256
+action_horizon: 2
+frame_stack: 1
+abs_action: true
+
+policy:
+  _target_: adapt3r.algos.diffuser_actor.DiffuserActor
+  normalizer:
+    mode: identity
+  backbone: "clip"
+  image_size: [128, 128]
+  embedding_dim: 120
+  num_vis_ins_attn_layers: 2
+  use_instruction: True
+  fps_subsampling_factor: 5
+  diffusion_timesteps: 100
+  inference_timesteps: 10
+  nhist: ${algo.frame_stack}
+  relative: true
+  lang_enhanced: true
+  do_crop: true
+  task_suite_name: ${task.suite_name}
+  task_benchmark_name: ${task.benchmark_name}
+  temporal_agg: false
+
+# encoder:
+# dataset:
+#   seq_len: ${algo.chunk_size}
+#   frame_stack: ${algo.frame_stack}
+#   obs_seq_len:  ${algo.chunk_size}
+#   lowdim_obs_seq_len: null
+#   load_obs_for_pretrain: true
+#   load_next_obs: false
+
+env_factory:
+  _target_: adapt3r.env.libero.wrappers.LiberoWrapper
+  _partial_: true 
+  shape_meta: ${task.shape_meta}
+  img_height: ${task.img_height}
+  img_width: ${task.img_width}
+  device: ${device}
+  control_delta: false
+
+dataset:
+  seq_len: ${algo.chunk_size}
+  frame_stack: ${algo.frame_stack}
+  obs_seq_len: 1
+  lowdim_obs_seq_len: null
+  load_obs_for_pretrain: true
+  load_next_obs: false
