@@ -3,8 +3,8 @@
 
 Albert Wilcox, Mohamed Ghanem, Masoud Moghani, Pierre Barroso, Benjamin Joffe, Animesh Garg
 
-[![Static Badge](https://img.shields.io/badge/Project-Page-green?style=for-the-badge)](https://albertwilcox.github.io/)
-[![arXiv](https://img.shields.io/badge/arXiv-2406.09246-df2a2a.svg?style=for-the-badge)](https://albertwilcox.github.io/)
+[![Static Badge](https://img.shields.io/badge/Project-Page-green?style=for-the-badge)](https://pairlab.github.io/Adapt3R)
+[![arXiv](https://img.shields.io/badge/arXiv-2406.09246-df2a2a.svg?style=for-the-badge)](https://arxiv.org/abs/2503.04877)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.2.0-EE4C2C.svg?style=for-the-badge&logo=pytorch)](https://pytorch.org/get-started/locally/)
 [![Python](https://img.shields.io/badge/python-3.10-blue?style=for-the-badge)](https://www.python.org)
 [![License](https://img.shields.io/github/license/TRI-ML/prismatic-vlms?style=for-the-badge)](LICENSE)
@@ -117,12 +117,16 @@ You can replace `evaluate.py` with `export_videos.py` and instead of running the
 ## Citation
 If you find this work useful, please use the following citation:
 ```
-todo
+@misc{wilcox2025adapt3r,
+    title={Adapt3R: Adaptive 3D Scene Representation for Domain Transfer in Imitation Learning}, 
+    author={Albert Wilcox and Mohamed Ghanem and Masoud Moghani and Pierre Barroso and Benjamin Joffe and Animesh Garg},
+    year={2025},
+    eprint={2503.04877},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV},
+    url={https://arxiv.org/abs/2503.04877}}
 ```
 
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Website License
-<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
