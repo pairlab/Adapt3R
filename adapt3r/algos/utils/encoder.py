@@ -7,7 +7,6 @@ input conditioned on the language.
 import einops
 
 import dgl.geometry as dgl_geo
-import pytorch3d.ops as torch3d_ops
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -402,12 +401,13 @@ class HybridEncoder(BaseEncoder):
         rgb_features = rgb_features * mask.unsqueeze(-1)
 
         if self.downsample_mode == "pos":
-            downsampled_pcd, downsample_indices = torch3d_ops.sample_farthest_points(
-                pcd, lengths=torch.sum(mask, dim=1), K=self.num_points
-            )
+            downsample_indices = dgl_geo.farthest_point_sampler(pcd, self.num_points, 0)
             downsample_mask = ~(downsample_indices == -1)
             downsample_indices_clipped = torch.clamp(downsample_indices, min=0)
 
+            downsampled_pcd = torch.gather(
+                pcd, 1, einops.repeat(downsample_indices_clipped, "b n -> b n 3")
+            )
             downsampled_rgb = torch.gather(
                 rgb, 1, einops.repeat(downsample_indices_clipped, "b n -> b n 3")
             )

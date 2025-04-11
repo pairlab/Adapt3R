@@ -6,7 +6,7 @@ import torchvision
 
 from adapt3r.algos.utils.obs_core import CropRandomizer
 from adapt3r.utils.point_cloud_utils import show_point_cloud
-import pytorch3d.transforms as pt
+import adapt3r.utils.pytorch3d_transforms as pt
 import einops
 
 

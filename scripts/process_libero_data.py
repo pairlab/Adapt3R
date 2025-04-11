@@ -7,7 +7,7 @@ from natsort import natsorted
 # from IPython.core import ultratb
 from libero.libero import benchmark
 from tqdm import tqdm, trange
-import pytorch3d.transforms as pt
+import adapt3r.utils.pytorch3d_transforms as pt
 import torch
 
 import adapt3r.env.libero.utils as lu
@@ -145,7 +145,12 @@ def main(cfg):
 
     env_factory = instantiate(cfg.task.env_factory)
 
+    task_nums = cfg.task_nums if 'task_nums' in cfg else None
+
     for task_no, task_name in enumerate(task_names):
+        if task_nums is not None and task_no not in task_nums:
+            continue
+
         task_name = task_names[task_no]
         setting, number, _ = lu.deconstruct_task_name(task_name)
         

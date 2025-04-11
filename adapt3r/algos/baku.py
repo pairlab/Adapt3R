@@ -65,7 +65,7 @@ class Baku(ChunkPolicy):
         data = self.preprocess_input(data, train_mode=True)
 
 
-        actions = data["abs_actions"] if self.abs_action else data["actions"]
+        actions = data[self.action_key]
 
         # TODO: currently it doesn't work with frame_stack > 1 because it assumes that
         # for each stacked frame we have a corresponding action sequence starting from

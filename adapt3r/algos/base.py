@@ -44,6 +44,7 @@ class Policy(nn.Module, ABC):
             normalizer = Normalizer(mode="identity")
         self.normalizer = normalizer
         self.abs_action = abs_action
+        self.action_key = 'abs_actions' if abs_action else 'actions'
         self.device = device
 
         # Use 6D actions if we are predicting abs actions, else axis angle

@@ -37,11 +37,6 @@ pip install -e .
 
 You'll need to install DGL according to the instructions [here](https://www.dgl.ai/pages/start.html).
 
-You'll need to install [Pytorch3D](https://github.com/facebookresearch/pytorch3d/). This can be difficult, but we found [Miroslav Psota's package builder](https://github.com/facebookresearch/pytorch3d/discussions/1752) to be helpful. For example, on my system I ran
-```
-pip install --extra-index-url https://miropsota.github.io/torch_packages_builder pytorch3d==0.7.8+pt2.4.0cu121
-```
-
 Install LIBERO
 ```
 git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git
@@ -72,7 +67,7 @@ python scripts/train.py \
     task=libero_90_hybrid \
     algo=diffusion_policy \
     algo/encoder=adapt3r \
-    algo.chunk_size=15 \
+    algo.chunk_size=16 \
     exp_name=EXP_NAME \
     variant_name=VARIANT_NAME \
     seed=0

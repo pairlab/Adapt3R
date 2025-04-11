@@ -1,6 +1,6 @@
 import einops
 import matplotlib.pyplot as plt
-import pytorch3d.transforms as pt
+import adapt3r.utils.pytorch3d_transforms as pt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -50,6 +50,7 @@ class DiffuserActor(ChunkPolicy):
         self.nhist = nhist
         self.inference_timesteps = inference_timesteps
         self.do_crop = do_crop
+        assert self.abs_action, 'diffuser actor is only compatible with abs actions'
         self.encoder = Encoder(
             backbone=backbone,
             image_size=image_size,

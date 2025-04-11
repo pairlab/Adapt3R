@@ -19,7 +19,7 @@ train_dataloader:
   _target_: torch.utils.data.DataLoader
   batch_size: 64
   shuffle: true
-  num_workers: 1
+  num_workers: 4
   persistent_workers: true
   pin_memory: true
   multiprocessing_context: fork

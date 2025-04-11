@@ -3,7 +3,7 @@ Stolen from https://github.com/real-stanford/diffusion_policy/blob/main/diffusio
 """
 
 from typing import Union
-import pytorch3d.transforms as pt
+import adapt3r.utils.pytorch3d_transforms as pt
 import torch
 import numpy as np
 import functools

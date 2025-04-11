@@ -31,7 +31,7 @@ class ACT(ChunkPolicy):
     def compute_loss(self, data):
         data = self.preprocess_input(data, train_mode=True)
         
-        actions = data["abs_actions"] if self.abs_action else data["actions"]
+        actions = data[self.action_key]
 
         perception_encodings, lowdim_encodings, lang_emb = self.get_embeddings(data)
 

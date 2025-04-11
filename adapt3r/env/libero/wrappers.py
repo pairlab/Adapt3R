@@ -6,7 +6,6 @@ from copy import deepcopy
 import numpy as np
 np.set_printoptions(suppress=True)
 import torch
-import pytorch3d.ops as torch3d_ops
 import open3d as o3d
 from scipy.spatial.transform import Rotation
 

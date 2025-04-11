@@ -3,7 +3,6 @@ import gymnasium
 import mujoco
 import torch
 import open3d as o3d
-import pytorch3d.ops as torch3d_ops
 import robosuite.utils.transform_utils as T
 from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
 
