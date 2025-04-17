@@ -88,7 +88,7 @@ def compute_norm_stats(dataset, normalize_action=True, normalize_obs=True, do_tq
     for sub_dataset in tqdm(dataset.datasets[1:], disable=not do_tqdm):
         new_stats = {}
         if normalize_action:
-            new_stats_action = dataset.datasets[0].sequence_dataset.normalize_action()
+            new_stats_action = sub_dataset.sequence_dataset.normalize_action()
             new_stats.update(new_stats_action)
         if normalize_obs:
             new_stats_obs = sub_dataset.sequence_dataset.normalize_obs()
