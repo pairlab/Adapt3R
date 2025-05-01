@@ -1,0 +1,45 @@
+defaults:
+  - libero_base
+  - _self_
+
+# Normally we cache low dim inputs but now we'll have huge pointclouds
+# which count as "low dim"
+dataset:
+  hdf5_cache_mode: null
+  # Things that shouldn't go to the policy but are still needed for training
+  extra_obs_modality:
+    low_dim: 
+      - hand_mat
+      - hand_mat_inv
+
+
+num_pc_points: 512
+shape_meta:
+  action_dim: 7
+  observation:
+    rgb:
+      agentview_rgb:
+        - 3
+        - ${task.img_height}
+        - ${task.img_width}
+      robot0_eye_in_hand_rgb:
+        - 3
+        - ${task.img_height}
+        - ${task.img_width}
+    depth: {}
+    lowdim:
+      robot0_eef_pos: 3
+      robot0_gripper_qpos: 2
+    pointcloud: 
+      agentview_pointcloud_full: 
+        - ${task.img_height}
+        - ${task.img_width}
+        - 3
+      robot0_eye_in_hand_pointcloud_full: 
+        - ${task.img_height}
+        - ${task.img_width}
+        - 3
+  task:
+    type: vector
+    dim: 512
+  

@@ -1,0 +1,11 @@
+# Default encoder that supports various methods of combining observations from image, lowdim, pointcloud
+
+defaults:
+  - lowdim_encoder_factory: mlp
+  - image_encoder_factory: resnet
+
+_target_: adapt3r.algos.utils.encoder.DefaultEncoder
+shape_meta: ${task.shape_meta}
+lang_embed_dim: ${algo.lang_embed_dim}
+share_image_encoder: true
+share_lowdim_encoder: true

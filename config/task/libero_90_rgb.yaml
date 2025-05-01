@@ -1,0 +1,9 @@
+defaults:
+  - libero_rgb_base
+  - _self_
+
+benchmark_name: libero_90
+mode: all
+n_tasks: 10
+rollouts_per_env: 50
+

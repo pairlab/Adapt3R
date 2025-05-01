@@ -1,0 +1,7 @@
+# This is a dummy yaml file supplying values to make the task interpolation keys work
+
+
+name: data_collection
+frame_stack: 1
+chunk_size: 1
+abs_action: false
