@@ -28,6 +28,303 @@
   <script src="./static/js/bulma-carousel.min.js"></script>
   <script src="./static/js/bulma-slider.min.js"></script>
   <script src="./static/js/index.js"></script>
+
+  <style>
+    .center-image {
+        display: block;
+        margin: 0 auto;
+    }
+
+
+    .blend-img-item {
+        background: #f5f5f5;
+    }
+
+    .item {
+        margin: 10px;
+    }
+
+    .blend-img-background {
+        mix-blend-mode: multiply;
+    }
+
+    #interactive {
+        position: relative;
+        display: inline-block;
+        width: 768px;
+        aspect-ratio: 16/9;
+        max-width: 100%;
+        border: 2px solid #fff;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 0 4px #000;
+
+    }
+
+    #interactive canvas,
+    #interactive #glfailed,
+    #interactive #loading {
+        display: block;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+    }
+
+    #interactive #glfailed {
+        color: #f88;
+        background: black;
+        display: none;
+    }
+
+    #interactive #loading {
+        color: #000;
+        font-size: 32px;
+        font-weight: bold;
+        background: rgba(255, 255, 255, 0.8);
+        display: none;
+    }
+
+    .iframe-container {
+        width: 30%;
+        max-width: 20em;
+    }
+
+    .vframe {
+        border-radius: 0.5em;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 32 / 27.5;
+        max-width: 32em;
+        max-height: 27.5em;
+        border: none;
+        box-shadow: 0 0 1em 0em rgba(0, 0, 0, 0.15);
+    }
+
+    .large-vframe {
+        border-radius: 0.5em;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 32 / 18;
+        max-width: 64em;
+        max-height: 36em;
+        border: none;
+        box-shadow: 0 0 1em 0em rgba(0, 0, 0, 0.15);
+    }
+
+    button {
+        display: block;
+        width: 100%;
+        padding: 10px 0;
+        margin-top: 10px;
+        cursor: pointer;
+    }
+
+    .modelviewer-container {
+        width: 50%;
+        max-width: 32em;
+    }
+
+    model-viewer {
+        border-radius: 0.5em;
+        width: 100%;
+        max-width: 32em;
+        max-height: 27.5em;
+        height: auto;
+        aspect-ratio: 32 / 27.5;
+        border: none;
+        box-shadow: 0 0 1em 0em rgba(0, 0, 0, 0.15);
+    }
+
+    .siframe-class {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: center;
+        gap: 1vw;
+        padding: 1vw;
+        align-items: start;
+    }
+
+    .siframe-class .image-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 1vw;
+        flex: 1 0 40%;
+        max-width: 384px;
+    }
+
+    .siframe-class .image-grid img {
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+    }
+
+    .siframe-class .iframe-container {
+        flex: 1 0 60%;
+        max-width: 640px;
+    }
+
+    .siframe-class iframe {
+        width: 100%;
+        border-radius: 0.5em;
+        max-width: 640px;
+        height: auto;
+        aspect-ratio: 5 / 4;
+        border: none;
+        box-shadow: 0 0 1em 0em rgba(0, 0, 0, 0.15);
+    }
+
+    @media (max-width: 768px) {
+
+        .large-vframe {
+            width: 100%;
+        }
+
+        .iframe-container {
+            width: 100%;
+        }
+
+        model-viewer {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+    }
+
+    .load img {
+        width: 100px;
+        height: 70px;
+        object-fit: cover;
+        margin: 4px;
+        border: 2px solid #fff;
+        box-shadow: 0 0 4px #888;
+        border-radius: 6px;
+        vertical-align: bottom;
+    }
+
+    .load img:active {
+        box-shadow: 0 0 4px #000;
+        opacity: .8;
+    }
+
+    .megabuttons {
+        position: absolute;
+        left: 5px;
+        bottom: 5px;
+        text-transform: uppercase;
+        text-align: left;
+    }
+
+    nav {
+        text-align: center;
+    }
+
+    nav ul {
+        list-style: none;
+        padding: 0;
+        margin: 20px auto;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        width: 100%;
+        gap: 10px;
+    }
+
+    nav ul li {
+        flex: 1;
+        display: flex;
+        margin: 0;
+    }
+
+    nav ul li a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f5f5f5;
+        color: #363636;
+        padding: 10px 20px;
+        text-decoration: none;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        min-height: 50px;
+        flex-grow: 1;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+
+    nav ul li a:hover {
+        background-color: #e4e4e4;
+        transform: scale(1.05);
+    }
+
+    nav ul li a:active {
+        background-color: #d3d3d3;
+        transform: scale(0.95);
+    }
+
+    nav ul li a.active {
+        background-color: #cccccc; /* Change color to indicate active tab */
+        color: #000000; /* Optional: Change text color if needed */
+    }
+
+
+    .dynamic-section {
+        display: none;
+        padding: 1rem 0;
+    }
+
+
+
+    .grid-container-2x6 {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        grid-template-rows: repeat(2, auto);
+        gap: 10px;
+        padding: 20px;
+        max-width: 80%;
+        margin: auto;
+    }
+
+    .grid-container-2x6 img {
+        width: 100%;
+        height: auto;
+    }
+
+    .grid-container-1x6 {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        grid-template-rows: repeat(1, auto);
+        gap: 10px;
+        padding: 20px;
+        max-width: 80%;
+        margin: auto;
+    }
+
+    .grid-container-1x6 img {
+        width: 100%;
+        height: auto;
+    }
+
+    .panel-style {
+        background-color: #fafafa;
+        padding: 20px;
+        margin: 20px auto;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+    }
+
+    .iframe-row {
+        display: flex;
+        flex-wrap: wrap;       /* Allows wrapping on small screens */
+        justify-content: space-around;
+        gap: 1em;              /* Optional: adds spacing between items */
+    }
+</style>
+
 </head>
 <body>
 
@@ -74,16 +371,6 @@
                   <span>arXiv</span>
                 </a>
               </span>
-              <!-- Video Link. -->
-              <!-- <span class="link-block">
-                <a href=""
-                   class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                      <i class="fab fa-youtube"></i>
-                  </span>
-                  <span>Video</span>
-                </a>
-              </span> -->
               <!-- Code Link. -->
               <span class="link-block">
                 <a href="https://github.com/pairlab/Adapt3R"
@@ -106,12 +393,13 @@
 <section class="hero teaser">
   <div class="container is-max-desktop">
     <div class="hero-body">
-      <video id="teaser" autoplay muted loop playsinline height="100%">
-        <source src="./static/videos/adapt3r-teaser-vid.mp4"
+      <video id="teaser" controls autoplay muted playsinline height="100%">
+        <source src="./static/videos/adapt3r-vid-compressed.mp4"
                 type="video/mp4">
       </video>
       <h2 class="subtitle has-text-centered">
-        <b>TL;DR</b> Adapt3R is a 3D perception encoder that, combined with any of a variety of IL algorithms, enables zero-shot transfer to unseen embodiments and camera viewpoints.
+        <b>TL;DR</b> Adapt3R is a 3D perception encoder that, combined with any of a variety of IL 
+        algorithms, enables zero-shot transfer to unseen embodiments and camera viewpoints.
       </h2>
    </div>
   </div>
@@ -127,18 +415,18 @@
           <h2 class="title is-3">Abstract</h2>
           <div class="content has-text-justified">
             <p>
-              Imitation learning (IL) is a compelling method for training robots to complete a wide variety of manipulation tasks. 
-              While many modern IL algorithms use RGB observations as a default, several recent works have shown that 3D scene 
-              representations lifted from calibrated RGBD cameras can be useful for completing more complicated tasks, generalizing 
-              between camera viewpoints, generalizing to new instances of objects, and learning in low-data regimes. 
-              However, these works generally either focus on 3D keyframe prediction, utilize the scene information in a way that is 
-              highly specific to one action decoder, or omit semantic information important to task success. 
-              In this work, we argue that these 3D scene representations are useful for a variety of IL algorithms, even those originally
-              designed to work with 2D inputs. To that end, we introduce Adaptive 3D Scene Representation (Adapt3R), a general-purpose 3D observation encoder. 
-              Adapt3R uses a novel architecture to synthesize data from one or more depth cameras into a single vector which can then
-              be used as conditioning for a variety of IL algorithms. 
-              We show that when combined with SOTA multitask IL algorithms, Adapt3R maintains their multitask learning capacity 
-              while enabling zero-shot transfer to novel embodiments and camera poses. 
+              Imitation Learning can train robots to perform complex and diverse manipulation tasks, 
+              but learned policies are brittle with observations outside of the training distribution. 
+              3D scene representations that incorporate observations from calibrated RGBD cameras have 
+              been proposed as a way to mitigate this, but in our evaluations with unseen embodiments 
+              and camera viewpoints they show only modest improvement. To address those challenges, we 
+              propose Adapt3R, a general-purpose 3D observation encoder which synthesizes data from calibrated 
+              RGBD cameras into a vector that can be used as conditioning for arbitrary IL algorithms. 
+              The key idea is to use a pretrained 2D backbone to extract semantic information, using 3D 
+              only as a medium to localize this information with respect to the end-effector. We show 
+              across 93 simulated and 6 real tasks that when trained end-to-end with a variety of IL 
+              algorithms, Adapt3R maintains these algorithms' learning capacity while enabling zero-shot 
+              transfer to novel embodiments and camera poses.
             </p>
           </div>
         </div>
@@ -157,7 +445,7 @@
       </video>
       <div class="content has-text-justified">
         <p>
-          Adapt3R is a unified method for extracting scene representations from RGBD 
+          Adapt3R extracts scene representations from RGBD 
           inputs for imitation learning, and is designed to work well with a variety 
           of state-of-the-art imitation learning algorithms. It starts by lifting 
           pre-trained foundation model features on RGBD inputs into a 3D scene representation. 
@@ -264,6 +552,66 @@
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<hr style="border: 1px solid #ffffff">
+
+
+<section class="hero is-light is-small">
+  <div class="hero-body">
+    <div class="container">
+      <h2 class="title is-3">Attention Maps</h2>
+      <h2 class="subtitle">
+        We visualize attention maps from our attention pooling operation. In the training distribution, we see that Adapt3R mainly attends to the task-relevant objects.
+      </h2>
+      <div class="iframe-row">
+        <div class="iframe-container">
+          <iframe class="vframe"
+                  src="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/threading-orig.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000"
+                  loading="lazy"></iframe>
+                  <button onclick="openInNewTab(this)" data-link="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/threading-orig.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000">Open in New Tab for Better Visualization</button>
+                </div>
+        <div class="iframe-container">
+          <iframe class="vframe"
+          src="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/square-orig.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000"
+          loading="lazy"></iframe>
+          <button onclick="openInNewTab(this)" data-link="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/square-orig.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000">Open in New Tab for Better Visualization</button>
+        </div>
+        <div class="iframe-container">
+          <iframe class="vframe"
+          src="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/coffee-orig.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000"
+          loading="lazy"></iframe>
+          <button onclick="openInNewTab(this)" data-link="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/coffee-orig.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000">Open in New Tab for Better Visualization</button>
+        </div>
+      </div>
+      <hr>
+      <hr>
+      <h2 class="title is-4">Attention Maps with Unseen Camera View</h2>
+      <h2 class="subtitle">
+        Now, after we move the camera to an unseen viewpoint, we see that Adapt3R attends to the same task-relevant objects, helping to minimize the domain gap.
+      </h2>
+      <div class="iframe-row">
+        <div class="iframe-container">
+          <iframe class="vframe"
+                  src="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/threading-change.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000"
+                  loading="lazy"></iframe>
+          <button onclick="openInNewTab(this)" data-link="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/threading-change.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000">Open in New Tab for Better Visualization</button>
+        </div>
+        <div class="iframe-container">
+          <iframe class="vframe"
+                  src="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/square-change.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000"
+                  loading="lazy"></iframe>
+          <button onclick="openInNewTab(this)" data-link="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/square-change.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000">Open in New Tab for Better Visualization</button>
+        </div>
+        <div class="iframe-container">
+          <iframe class="vframe"
+                  src="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/coffee-change.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000"
+                  loading="lazy"></iframe>
+          <button onclick="openInNewTab(this)" data-link="https://adapt3r-robot.github.io/viser-client?playbackPath=https://adapt3r-robot.github.io/recordings/coffee-change.viser&initialCameraPosition=0.749,-0.078,1.134&initialCameraLookAt=-0.411,-0.100,0.360&initialCameraUp=0.000,0.000,1.000">Open in New Tab for Better Visualization</button>
+        </div>
+      </div>
+    </div>      
   </div>
 </section>
 
@@ -739,21 +1087,7 @@
 </section>
 
 
-
-<section class="section" id="BibTeX">
-  <div class="container is-max-desktop content">
-    <h2 class="title">BibTeX</h2>
-    <pre>
-<code>@misc{wilcox2025adapt3radaptive3dscene,
-    title={Adapt3R: Adaptive 3D Scene Representation for Domain Transfer in Imitation Learning}, 
-    author={Albert Wilcox and Mohamed Ghanem and Masoud Moghani and Pierre Barroso and Benjamin Joffe and Animesh Garg},
-    year={2025},
-    eprint={2503.04877},
-    archivePrefix={arXiv},
-    primaryClass={cs.CV},
-    url={https://arxiv.org/abs/2503.04877}}</code></pre>
-  </div>
-</section>
+<!-- Add bibtex here -->
 
 <footer class="footer">
   <div class="container">
@@ -767,7 +1101,7 @@
           </p>
           <p>
             Borrowed from the <a
-              href="https://github.com/nerfies/nerfies.github.io">source code</a>.
+              href="https://github.com/nerfies/nerfies.github.io">source code</a>. Thanks to <a href="https://viser.studio/main/">Viser</a> for point cloud visualization tools.
           </p>
         </div>
       </div>

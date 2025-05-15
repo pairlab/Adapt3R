@@ -19,6 +19,10 @@ function setInterpolationImage(i) {
   $('#interpolation-image-wrapper').empty().append(image);
 }
 
+function openInNewTab(element) {
+  var url = element.getAttribute('data-link');
+  window.open(url, '_blank').focus();
+}
 
 $(document).ready(function() {
     // Check for click events on the navbar burger icon
@@ -76,3 +80,4 @@ $(document).ready(function() {
     bulmaSlider.attach();
 
 })
+
