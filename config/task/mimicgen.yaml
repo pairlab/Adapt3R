@@ -1,0 +1,97 @@
+suite_name: mimicgen
+task_name: square_d1
+benchmark_name: ${task.task_name}
+mode: all
+robot: Panda
+cam_shift: null
+bimanual: false
+
+n_tasks: 1
+demos_per_env: 1000
+img_height: 128
+img_width: 128
+horizon: 300
+data_subfolder: core_depth
+
+shape_meta:
+  actions: 
+    actions: 7
+  abs_actions: 
+    abs_actions: 7
+  rotation_rep_in: axis_angle
+  rotation_rep_in_abs: axis_angle
+  rotation_rep_out: axis_angle
+  observation:
+    rgb:
+      agentview_image:
+        - 3
+        - ${task.img_height}
+        - ${task.img_width}
+      robot0_eye_in_hand_image:
+        - 3
+        - ${task.img_height}
+        - ${task.img_width}
+    depth:
+      agentview_depth:
+        - 1
+        - ${task.img_height}
+        - ${task.img_width}
+      robot0_eye_in_hand_depth:
+        - 1
+        - ${task.img_height}
+        - ${task.img_width}
+    lowdim: 
+      robot0_eef_pos: 3
+      robot0_eef_quat: 4
+      robot0_gripper_qpos: 2
+  task:
+    type: onehot
+    n_tasks: ${task.n_tasks}
+    dim: 64
+
+# build_dataset(data_prefix, benchmark_name, benchmark_name, seq_len, obs_seq_len, obs_modality):
+dataset:
+  _target_: adapt3r.envs.mimicgen.utils.build_single_task_dataset
+  data_prefix: ${data_prefix}
+  dataset_name: mimicgen
+  data_subfolder: ${task.data_subfolder}
+  task_name: ${task.task_name}
+  seq_len: ${algo.dataset.seq_len}
+  frame_stack: ${algo.dataset.frame_stack}
+  obs_seq_len: ${algo.dataset.obs_seq_len}
+  shape_meta: ${task.shape_meta}
+  abs_action: ${algo.abs_action}
+  load_obs: ${training.load_obs}
+  load_image: ${algo.encoder.load_image}
+  load_depth: ${algo.encoder.load_depth}
+  n_demos: ${task.demos_per_env}
+  extra_obs_modality:
+    low_dim: 
+      - hand_mat
+      - hand_mat_inv
+      - agentview_extrinsic
+      - robot0_eye_in_hand_extrinsic
+      - agentview_intrinsic
+      - robot0_eye_in_hand_intrinsic
+
+env_factory:
+  _target_: adapt3r.envs.mimicgen.wrappers.MimicGenWrapper
+  _partial_: true 
+  env_name: ${task.task_name}
+  shape_meta: ${task.shape_meta}
+  img_height: ${task.img_height}
+  img_width: ${task.img_width}
+  abs_action: ${algo.abs_action}
+  robot: ${task.robot}
+  camera_pose_variations: ${task.cam_shift}
+
+env_runner:
+  _target_: adapt3r.envs.mimicgen.runner.MimicGenRunner
+  env_factory: ${task.env_factory}
+  benchmark_name: ${task.benchmark_name}
+  mode: ${task.mode}
+  rollouts_per_env: ${rollout.rollouts_per_env}
+  max_episode_length: ${rollout.max_episode_length}
+  deterministic: true
+  fps: 24
+  debug: false

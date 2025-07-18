@@ -1,23 +1,25 @@
 defaults:
-  - task: metaworld_ml45
-  - algo: quest
+  - task: libero
+  - algo: act
   - _self_
 
 exp_name: debug # 
-variant_name: null
+variant_name: null # This parameter is used to identify the variant within the experiment. It's main uses are file naming and wandb grouping
 seed: 10000
 device: cuda:0
 output_prefix: ./experiments
 data_prefix: ./data
 make_unique_experiment_dir: false
 logging_folder: training
+normalize_action: true
+normalize_obs: false
 
 checkpoint_path: null
 
 
 train_dataloader:
   _target_: torch.utils.data.DataLoader
-  batch_size: 64
+  batch_size: ${algo.batch_size}
   shuffle: true
   num_workers: 4
   persistent_workers: true
@@ -26,9 +28,7 @@ train_dataloader:
 
 training:
   # training
-  normalize_action: true
-  normalize_obs: false
-  n_epochs: 100
+  n_epochs: 101
   grad_clip: 100.
   save_interval: 10
   log_interval: 100
@@ -45,8 +45,8 @@ training:
 
 rollout:
   enabled: true
-  interval: 25
-  rollouts_per_env: 1
+  interval: 10
+  rollouts_per_env: ${eval:'10 if ${task.n_tasks} == 1 else 1'}
   max_episode_length: ${task.horizon}
   n_video: 0
   num_parallel_envs: 1
@@ -55,7 +55,7 @@ rollout:
 logging:
   group: null
   mode: online # set logging.mode=disabled to disable wandb
-  project: adapt3r
+  project: cleanup
   resume: true
   save_code: true
 

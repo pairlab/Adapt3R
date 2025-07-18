@@ -1,16 +1,20 @@
 defaults:
-  # - encoder/lowdim: mlp
-  # - encoder/image: resnet
-  # - encoder/pointcloud: pointnet
-  - encoder: default
+  - encoder: rgb
   - aug: image
+
+name: ${eval:'${algo.name}'} # this is used to override the name of the algo
 
 embed_dim: 512
 lowdim_embed_dim: ${algo.embed_dim}
 image_embed_dim: ${algo.embed_dim}
-pc_embed_dim: ${algo.embed_dim}
 lang_embed_dim: ${algo.embed_dim}
 abs_action: false
+frame_stack: 1
+eecf: false
+batch_size: 64
+
+lr: 1.0e-4
+weight_decay: 1.0e-6
 
 policy:
   encoder: ${algo.encoder}
@@ -24,19 +28,26 @@ policy:
     _target_: torch.optim.AdamW
     _partial_: true
     lr: ${algo.lr}
-    betas: [0.9, 0.999]    
+    betas: [0.95, 0.999]
+    eps: 1.0e-8
     weight_decay: ${algo.weight_decay}
-  scheduler_factory:
-    _target_: torch.optim.lr_scheduler.CosineAnnealingLR
-    _partial_: true
-    eta_min: 1e-5
-    last_epoch: -1
-    T_max: ${training.n_epochs}
   abs_action: ${algo.abs_action}
   shape_meta: ${task.shape_meta}
+  eecf: ${algo.eecf}
+  bimanual: ${task.bimanual}
   device: ${device}
 
+scheduler_kwargs:
+  schedule_type: cosine
+  warmup_steps: 1000
+  lr: ${algo.lr}
+  end_factor: 0.01
+
 dataset:
-  lowdim_obs_seq_len: ${algo.chunk_size}
+  seq_len: 1
+  frame_stack: 1
+  obs_seq_len: 1
+  lowdim_obs_seq_len: null
   load_next_obs: false
-  dataset_keys: [actions, abs_actions]
+  # dataset_keys: [actions, abs_actions]
+  

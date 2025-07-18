@@ -1,0 +1,113 @@
+# observation related
+# seq_len: ${algo.chunk_size}
+# obs_seq_len: ${algo.frame_stack}
+# frame_stack: 1
+
+suite_name: libero
+benchmark_name: libero_90
+benchmark_instance:
+  _target_: adapt3r.envs.libero.utils.get_benchmark_instance
+  benchmark_name: ${task.benchmark_name}
+  distractor: ${task.distractor_objects}
+  robot: ${task.robot}
+mode: all
+n_tasks: ${eval:"90 if '${task.benchmark_name}' == 'libero_90' else 10"}
+demos_per_env: 50
+distractor_objects: false
+robot: Panda
+cam_shift: false
+bimanual: false
+
+task_embedding_format: ${algo.encoder.task_embedding_format}
+img_height: 128
+img_width: 128
+horizon: 300
+
+shape_meta:
+  actions: 
+    actions: 7
+  abs_actions: 
+    abs_actions: 7
+  rotation_rep_in: axis_angle
+  rotation_rep_in_abs: axis_angle
+  rotation_rep_out: axis_angle
+  observation:
+    rgb:
+      agentview_image:
+        - 3
+        - ${task.img_height}
+        - ${task.img_width}
+      robot0_eye_in_hand_image:
+        - 3
+        - ${task.img_height}
+        - ${task.img_width}
+    depth:
+      agentview_depth:
+        - 1
+        - ${task.img_height}
+        - ${task.img_width}
+      robot0_eye_in_hand_depth:
+        - 1
+        - ${task.img_height}
+        - ${task.img_width}
+    lowdim:
+      robot0_eef_pos: 3
+      robot0_gripper_qpos: 2
+  task:
+    type: vector
+    dim: 512
+
+
+# build_dataset(data_prefix, benchmark_name, benchmark_name, seq_len, obs_seq_len, obs_modality):
+dataset:
+  _target_: adapt3r.envs.libero.utils.build_dataset
+  data_prefix: ${data_prefix}
+  suite_name: ${task.suite_name}
+  benchmark_name: ${task.benchmark_name}
+  mode: ${task.mode}
+  seq_len: ${algo.dataset.seq_len}
+  frame_stack: ${algo.dataset.frame_stack}
+  obs_seq_len: ${algo.dataset.obs_seq_len}
+  shape_meta: ${task.shape_meta}
+  load_obs: ${training.load_obs}
+  load_image: ${algo.encoder.load_image}
+  load_depth: ${algo.encoder.load_depth}
+  task_embedding_format: ${task.task_embedding_format}
+  n_demos: ${task.demos_per_env}
+  hdf5_cache_mode: low_dim
+  action_keys: ${eval:"'abs_actions' if ${algo.abs_action} else 'actions'"}
+  extra_obs_modality:
+    low_dim: 
+      - hand_mat
+      - hand_mat_inv
+      - agentview_extrinsic
+      - robot0_eye_in_hand_extrinsic
+      - agentview_intrinsic
+      - robot0_eye_in_hand_intrinsic
+  load_next_obs: ${algo.dataset.load_next_obs}
+
+env_factory:
+  _target_: adapt3r.envs.libero.wrappers.LiberoWrapper
+  _partial_: true 
+  shape_meta: ${task.shape_meta}
+  img_height: ${task.img_height}
+  img_width: ${task.img_width}
+  abs_action: ${algo.abs_action}
+  robot: ${task.robot}
+  camera_pose_variations: ${task.cam_shift}
+  device: ${device}
+
+env_runner:
+  _target_: adapt3r.envs.libero.runner.LiberoRunner
+  env_factory: ${task.env_factory}
+  frame_stack: ${algo.frame_stack}
+  benchmark: ${task.benchmark_instance}
+  mode: ${task.mode}
+  # obs_modality: ${task.dataset.obs_modality}
+  rollouts_per_env: ${rollout.rollouts_per_env}
+  num_parallel_envs: ${rollout.num_parallel_envs}
+  max_episode_length: ${rollout.max_episode_length}
+  fps: 24
+  debug: false
+  task_embedding_format: ${task.task_embedding_format}
+  

@@ -1,0 +1,4 @@
+defaults:
+  - rgb
+
+load_depth: true

@@ -1,0 +1,8 @@
+_target_: adapt3r.algos.utils.data_augmentation.DataAugGroup
+_partial_: true
+aug_list:
+  - _target_: adapt3r.algos.utils.data_augmentation.TranslationAug
+    _partial_: true
+    translation: 4
+    use_image: ${algo.encoder.load_image}
+    use_depth: ${algo.encoder.load_depth}

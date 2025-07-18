@@ -1,26 +1,25 @@
 import torch
 from adapt3r.algos.base import ChunkPolicy
 from adapt3r.algos.utils.misc import weight_init
+from adapt3r.algos.utils.act_utils.detr_vae import DETRVAE
 
 class ACT(ChunkPolicy):
     def __init__(
             self, 
-            act_model,
+            act_model: DETRVAE,
             loss_fn,
             kl_weight,
-            lr_backbone,
             encoder_input=('perception', 'lowdim',),
             **kwargs
             ):
         super().__init__(**kwargs)
         self.loss_fn = loss_fn
         self.kl_weight = kl_weight
-        self.lr_backbone = lr_backbone
         
         self.act_model = act_model(
             action_dim=self.network_action_dim,
             n_perception_input=self.encoder.n_out_perception,
-            n_lowdim_input=self.encoder.n_out_proprio,
+            n_lowdim_input=self.encoder.n_out_lowdim,
             encoder_input=encoder_input,
             )
         self.act_model = self.act_model.to(self.device)
@@ -31,14 +30,14 @@ class ACT(ChunkPolicy):
     def compute_loss(self, data):
         data = self.preprocess_input(data, train_mode=True)
         
-        actions = data[self.action_key]
+        actions = data["actions"]
 
         perception_encodings, lowdim_encodings, lang_emb = self.get_embeddings(data)
+        
 
         is_pad = torch.zeros((actions.shape[0], actions.shape[1]), device=self.device, dtype=torch.bool)
         pred_action, _, latent = self.act_model(lowdim_encodings, perception_encodings, lang_emb, actions, is_pad)
 
-        # pred_action, latent = self.forward(data)
         l1_loss = self.loss_fn(pred_action, actions)
         total_kld, dim_wise_kld, mean_kld = kl_divergence(latent[0], latent[1])
         loss = l1_loss + total_kld[0]*self.kl_weight
@@ -51,34 +50,31 @@ class ACT(ChunkPolicy):
         return loss, info
     
     def sample_actions(self, data):
-        with torch.no_grad():
-            data = self.preprocess_input(data, train_mode=False)
+        data = self.preprocess_input(data, train_mode=False)
 
-            perception_encodings, lowdim_encodings, lang_emb = self.get_embeddings(data)
+        perception_encodings, lowdim_encodings, lang_emb = self.get_embeddings(data)
 
-            pred_action, _, _ = self.act_model(lowdim_encodings, perception_encodings, lang_emb)
+        pred_action, _, _ = self.act_model(lowdim_encodings, perception_encodings, lang_emb)
 
-        return pred_action.cpu().numpy()
+        return pred_action.detach().cpu().numpy()
 
 
     def get_embeddings(self, data):
         perception_encodings, lowdim_encodings = self.obs_encode(data)
-        perception_encodings = torch.stack(perception_encodings, dim=2)
+        perception_encodings = torch.stack(perception_encodings, dim=1)
         B = perception_encodings.shape[0]
         D = perception_encodings.shape[-1]
         if len(lowdim_encodings) == 0:
             lowdim_encodings = torch.zeros((B, 0, D), device=perception_encodings.device)
         else:
-            lowdim_encodings = torch.stack(lowdim_encodings, dim=2)
+            lowdim_encodings = torch.stack(lowdim_encodings, dim=1)
         
         lang_emb = self.get_task_emb(data)
 
-        # collapse frame stack dim and number of encoder dim into one dimension
-        # TODO: currently untested for frame_stack>1
-        perception_encodings = perception_encodings.reshape(B, -1, D)
-        lowdim_encodings = lowdim_encodings.reshape(B, -1, D)
-
         return perception_encodings, lowdim_encodings, lang_emb
+
+
+
 
 
 

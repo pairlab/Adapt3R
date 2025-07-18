@@ -31,5 +31,5 @@ class ModifiedResNetFeatures(ModifiedResNet):
         x = self.avgpool(x0)
         x1 = self.layer1(x)
         x2 = self.layer2(x1)
-        # Exit early to save compute
         return {'res2': x1, 'res3': x2}
+

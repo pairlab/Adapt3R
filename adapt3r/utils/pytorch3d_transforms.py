@@ -6,6 +6,8 @@
 
 # pyre-unsafe
 
+# PyTorch3D is a pain to install. We really only need it for the transforms so we get around installing it with this file
+
 from typing import Optional, Union
 
 import torch

@@ -7,14 +7,16 @@ This file was stolen from robomimic
 """
 
 import abc
+import numpy as np
+import textwrap
+import random
 
 import torch
 import torch.nn as nn
 
 import adapt3r.utils.tensor_utils as TensorUtils
 import adapt3r.utils.obs_utils as ObsUtils
-
-
+import adapt3r.utils.camera_utils as cu
 
 """
 ================================================
@@ -221,16 +223,21 @@ class CropRandomizer(Randomizer):
         Samples N random crops for each input in the batch, and then reshapes
         inputs to [B * N, ...].
         """
-        assert len(inputs.shape) >= 3 # must have at least (C, H, W) dimensions
-        out, _ = ObsUtils.sample_random_image_crops(
-            images=inputs,
+        im, intrinsics = inputs
+
+        assert len(im.shape) >= 3 # must have at least (C, H, W) dimensions
+        out, crop_inds = ObsUtils.sample_random_image_crops(
+            images=im,
             crop_height=self.crop_height,
             crop_width=self.crop_width,
             num_crops=self.num_crops,
             pos_enc=self.pos_enc,
         )
+        if intrinsics is not None:
+            y_low, x_low = torch.unbind(crop_inds, dim=-1)
+            intrinsics = cu.crop_update_intrinsics(intrinsics, x_low, y_low)
         # [B, N, ...] -> [B * N, ...]
-        return TensorUtils.join_dimensions(out, 0, 1)
+        return TensorUtils.join_dimensions(out, 0, 1), intrinsics
 
     def _forward_in_eval(self, inputs):
         """
@@ -279,4 +286,92 @@ class CropRandomizer(Randomizer):
         header = '{}'.format(str(self.__class__.__name__))
         msg = header + "(input_shape={}, crop_size=[{}, {}], num_crops={})".format(
             self.input_shape, self.crop_height, self.crop_width, self.num_crops)
+        return msg
+
+
+class GaussianNoiseRandomizer(Randomizer):
+    """
+    Randomly sample gaussian noise at input, and then average across noises at output.
+    """
+    def __init__(
+        self,
+        input_shape,
+        noise_mean=0.0,
+        noise_std=0.3,
+        limits=None,
+        num_samples=1,
+    ):
+        """
+        Args:
+            input_shape (tuple, list): shape of input (not including batch dimension)
+            noise_mean (float): Mean of noise to apply
+            noise_std (float): Standard deviation of noise to apply
+            limits (None or 2-tuple): If specified, should be the (min, max) values to clamp all noisied samples to
+            num_samples (int): number of random color jitters to take
+        """
+        super(GaussianNoiseRandomizer, self).__init__()
+
+        self.input_shape = input_shape
+        self.noise_mean = noise_mean
+        self.noise_std = noise_std
+        self.limits = limits
+        self.num_samples = num_samples
+
+    def output_shape_in(self, input_shape=None):
+        # outputs are same shape as inputs
+        return list(input_shape)
+
+    def output_shape_out(self, input_shape=None):
+        # since the forward_out operation splits [B * N, ...] -> [B, N, ...]
+        # and then pools to result in [B, ...], only the batch dimension changes,
+        # and so the other dimensions retain their shape.
+        return list(input_shape)
+
+    def _forward_in(self, inputs):
+        """
+        Samples N random gaussian noises for each input in the batch, and then reshapes
+        inputs to [B * N, ...].
+        """
+        out = TensorUtils.repeat_by_expand_at(inputs, repeats=self.num_samples, dim=0)
+
+        # Sample noise across all samples
+        out = torch.rand(size=out.shape) * self.noise_std + self.noise_mean + out
+
+        # Possibly clamp
+        if self.limits is not None:
+            out = torch.clip(out, min=self.limits[0], max=self.limits[1])
+
+        return out
+
+    def _forward_out(self, inputs):
+        """
+        Splits the outputs from shape [B * N, ...] -> [B, N, ...] and then average across N
+        to result in shape [B, ...] to make sure the network output is consistent with
+        what would have happened if there were no randomization.
+        """
+        batch_size = (inputs.shape[0] // self.num_samples)
+        out = TensorUtils.reshape_dimensions(inputs, begin_axis=0, end_axis=0,
+                                             target_dims=(batch_size, self.num_samples))
+        return out.mean(dim=1)
+
+    def _visualize(self, pre_random_input, randomized_input, num_samples_to_visualize=2):
+        batch_size = pre_random_input.shape[0]
+        random_sample_inds = torch.randint(0, batch_size, size=(num_samples_to_visualize,))
+        pre_random_input_np = TensorUtils.to_numpy(pre_random_input)[random_sample_inds]
+        randomized_input = TensorUtils.reshape_dimensions(
+            randomized_input,
+            begin_axis=0,
+            end_axis=0,
+            target_dims=(batch_size, self.num_samples)
+        )  # [B * N, ...] -> [B, N, ...]
+        randomized_input_np = TensorUtils.to_numpy(randomized_input[random_sample_inds])
+
+        pre_random_input_np = pre_random_input_np.transpose((0, 2, 3, 1))  # [B, C, H, W] -> [B, H, W, C]
+        randomized_input_np = randomized_input_np.transpose((0, 1, 3, 4, 2))  # [B, N, C, H, W] -> [B, N, H, W, C]
+
+    def __repr__(self):
+        """Pretty print network."""
+        header = '{}'.format(str(self.__class__.__name__))
+        msg = header + f"(input_shape={self.input_shape}, noise_mean={self.noise_mean}, noise_std={self.noise_std}, " \
+                       f"limits={self.limits}, num_samples={self.num_samples})"
         return msg

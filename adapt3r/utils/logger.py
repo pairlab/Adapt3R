@@ -1,6 +1,7 @@
 import wandb
 import numpy as np
 
+
 class Logger:
     """
     The purpose of this simple logger is to log intermittently and log average values since the last log

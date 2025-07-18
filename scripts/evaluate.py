@@ -2,9 +2,11 @@ import os
 import time
 import hydra
 import wandb
+import logging
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 from tqdm import tqdm
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -12,6 +14,8 @@ import adapt3r.utils.utils as utils
 from pyinstrument import Profiler
 from moviepy import ImageSequenceClip
 import json
+from PIL import Image
+import numpy as np
 
 OmegaConf.register_new_resolver("eval", eval, replace=True)
 
@@ -21,73 +25,99 @@ def main(cfg):
     device = cfg.device
     seed = cfg.seed
     torch.manual_seed(seed)
+    np.random.seed(seed)
     train_cfg = cfg.training
     OmegaConf.resolve(cfg)
     
-    save_dir, _ = utils.get_experiment_dir(cfg, evaluate=True)
+    # Get mode from config
+    mode = cfg.mode  # 'evaluate' or 'export'
+    log_file = f'{mode}.log'
+    
+    # create model
+    save_dir, experiment_name = utils.get_experiment_dir(cfg, evaluate=True, allow_overlap=True)
     os.makedirs(save_dir, exist_ok=True)
 
+    # Add experiment-specific logging
+    logger = utils.setup_logger(log_file, save_dir)
+
+    logger.info(f"Starting {mode} for experiment: {experiment_name}")
+    logger.info(f"{mode.title()} directory: {save_dir}")
+
     try:
-        checkpoint_path = utils.get_latest_checkpoint(cfg.checkpoint_path)
-        state_dict = utils.load_state(checkpoint_path)
+        state_dict = utils.load_checkpoint(cfg.checkpoint_path, logger=logger)
     except Exception as e:
-        if cfg.allow_no_ckpt:
-            state_dict = None
-            print('no checkpoint found, running with untrained model')
-        else:
-            raise e
+        logger.error(f"Failed to load checkpoint: {str(e)}")
+        raise e
     
-    if state_dict is not None and 'config' in state_dict:
-        print('autoloading based on saved parameters')
-        policy_cfg = state_dict['config']['algo']['policy']
-        if 'overrides' in cfg:
-            utils.recursive_update(policy_cfg, cfg.overrides)
-        model = instantiate(policy_cfg, 
-                            shape_meta=cfg.task.shape_meta)
-    else:
-        model = instantiate(cfg.algo.policy,
-                            shape_meta=cfg.task.shape_meta)
+    logger.info("Autoloading based on saved parameters")
+    policy_cfg = state_dict['config']['algo']['policy']
+    if 'overrides' in cfg:
+        overrides = OmegaConf.to_container(cfg.overrides, resolve=True)
+        utils.recursive_update(policy_cfg, overrides)
+    abs_action = policy_cfg['abs_action']
+    model = instantiate(policy_cfg)
     model.to(device)
     model.eval()
 
-    if state_dict is not None:
-        model.load_state_dict(state_dict['model'])
-        model.normalizer.fit(state_dict['norm_stats'])
+    model.load_state_dict(state_dict['model'])
+    model.normalizer.fit(state_dict['norm_stats'])
+    logger.info("Loaded model state and normalization statistics")
+
+    env_runner = instantiate(
+        cfg.task.env_runner,
+        env_factory={'abs_action': abs_action}
+    )
+
+    # Configure video/image saving based on mode
+    if cfg.video_mode == 'images':
+        def save_video_fn(video_chw, env_name, idx):
+            save_path = os.path.join(save_dir, f'{env_name}_{idx}')
+            os.makedirs(save_path)
+            logger.debug(f"Saving video frames to: {save_path}")
+
+            video_hwc = video_chw.transpose(0, 2, 3, 1)
+            for i, frame in enumerate(video_hwc):
+                image = Image.fromarray(frame)
+                image.save(os.path.join(save_path, f'frame_{i}.png'))
     else:
-        model.normalizer.fit(None)
+        def save_video_fn(video_chw, env_name, idx):
+            save_path = os.path.join(save_dir, f'{env_name}_{idx}.mp4')
+            logger.debug(f"Saving video to: {save_path}")
+            clip = ImageSequenceClip(list(video_chw.transpose(0, 2, 3, 1)), fps=24)
+            clip.write_videofile(save_path, fps=24, logger=None)
 
-    env_runner = instantiate(cfg.task.env_runner)
-    
-    print(save_dir)
-
-    def save_video_fn(video_chw, env_name, idx):
-        video_dir = os.path.join(save_dir, 'videos', env_name)
-        os.makedirs(video_dir, exist_ok=True)
-        save_path = os.path.join(video_dir, f'{idx}.mp4')
-        clip = ImageSequenceClip(list(video_chw.transpose(0, 2, 3, 1)), fps=24)
-        clip.write_videofile(save_path, fps=24, verbose=False, logger=None)
+    env_names = cfg.get('env_names')
+    logger.info(f"Running {mode} on {'specific environments: ' + str(env_names) if env_names else 'all environments'}")
 
     if train_cfg.do_profile:
         profiler = Profiler()
         profiler.start()
+
+    logger.info(f"Starting {mode} rollout")
     rollout_results = env_runner.run(model, 
                                      n_video=cfg.rollout.n_video, 
-                                     do_tqdm=train_cfg.use_tqdm, 
-                                     save_video_fn=save_video_fn,
+                                     do_tqdm=train_cfg.use_tqdm,
+                                     env_names=env_names,
                                      save_dir=save_dir,
+                                     save_video_fn=save_video_fn,
+                                     save_hdf5=cfg.save_hdf5,
+                                     save_progress=True,
                                      fault_tolerant=False)
+    
     if train_cfg.do_profile:
         profiler.stop()
         profiler.print()
-    print(
-        f"[info]     success rate: {rollout_results['rollout']['overall_success_rate']:1.3f} \
-            | environments solved: {rollout_results['rollout']['environments_solved']}")
 
-    with open(os.path.join(save_dir, 'data.json'), 'w') as f:
+    success_rate = rollout_results['rollout']['overall_success_rate']
+    envs_solved = rollout_results['rollout']['environments_solved']
+    logger.info(
+        f"{mode.title()} results - success rate: {success_rate:1.3f} | environments solved: {envs_solved}"
+    )
+
+    results_file = os.path.join(save_dir, 'data.json')
+    with open(results_file, 'w') as f:
         json.dump(rollout_results, f)
-
-    
-
+    logger.info(f"Saved {mode} results to: {results_file}")
 
 if __name__ == "__main__":
     main()

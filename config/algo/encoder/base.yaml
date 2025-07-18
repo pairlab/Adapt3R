@@ -1,0 +1,8 @@
+frame_stack: ${algo.frame_stack}
+shape_meta: ${task.shape_meta}
+lang_embed_dim: ${algo.lang_embed_dim}
+
+load_image: true
+load_depth: false
+
+task_embedding_format: clip

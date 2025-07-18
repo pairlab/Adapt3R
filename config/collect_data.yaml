@@ -1,13 +1,9 @@
 defaults:
-  - task: metaworld_mt50_data
+  - task: libero
   - algo: data_collect
   - _self_
 
-# task:
-#   env_runner:
-#     rollouts_per_env: ${rollouts_per_env}
-
-exp_name: ${task.suite_name} # 
+exp_name: ${task.suite_name}
 variant_name: ${task.benchmark_name}
 seed: 10000
 device: cuda:0

@@ -41,7 +41,7 @@ def get_shape_metadata_from_dataset(dataset_path, all_obs_keys=None, verbose=Fal
     demo = f["data/{}".format(demo_id)]
 
     # action dimension
-    shape_meta['ac_dim'] = f["data/{}/actions".format(demo_id)].shape[1]
+    # shape_meta['ac_dim'] = f["data/{}/actions".format(demo_id)].shape[1]
 
     # observation dimensions
     all_shapes = OrderedDict()
@@ -68,5 +68,4 @@ def get_shape_metadata_from_dataset(dataset_path, all_obs_keys=None, verbose=Fal
     shape_meta['use_depths'] = ObsUtils.has_modality("depth", all_obs_keys)
 
     return shape_meta
-
 

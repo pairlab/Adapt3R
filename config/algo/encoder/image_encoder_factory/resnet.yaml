@@ -1,8 +1,0 @@
-_target_: adapt3r.algos.utils.rgb_modules.ResnetEncoder
-_partial_: true
-output_size: ${algo.image_embed_dim}
-pretrained: false
-freeze: false
-remove_layer_num: 4
-no_stride: false
-language_fusion: 'none'

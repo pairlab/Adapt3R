@@ -1,10 +1,12 @@
-import einops
+from collections import deque
 
 import einops
+import numpy as np
 import torch
 from torch import distributions as pyd
 from torch import nn
 from torch.distributions.utils import _standard_normal
+from torchvision import transforms as T
 
 from adapt3r.algos.base import ChunkPolicy
 
@@ -20,7 +22,8 @@ class Baku(ChunkPolicy):
             frame_stack, 
             embed_dim, 
             policy_head, 
-            **kwargs):
+            **kwargs
+        ):
         super().__init__(**kwargs)
         self.hidden_dim = hidden_dim
         self.std = std
@@ -28,7 +31,7 @@ class Baku(ChunkPolicy):
         self.frame_stack = frame_stack
 
         num_feat_per_step = (
-            self.encoder.n_out_perception + self.encoder.n_out_proprio
+            self.encoder.n_out_perception + self.encoder.n_out_lowdim
         )
 
         # actor
@@ -50,9 +53,9 @@ class Baku(ChunkPolicy):
         self._action_head.apply(weight_init)
 
     def forward(self, data):
-        img_encodings, lowdim_encodings = self.obs_encode(data)
-        encodings = img_encodings + lowdim_encodings
-        encodings_stacked = torch.stack(encodings, dim=2)
+        perception_encodings, lowdim_encodings = self.obs_encode(data)
+        encodings = perception_encodings + lowdim_encodings
+        encodings_stacked = torch.stack(encodings, dim=1)
         lang_emb = self.get_task_emb(data)
         features = self.trunk(encodings_stacked, lang_emb)
         pred_action = self._action_head(
@@ -64,8 +67,7 @@ class Baku(ChunkPolicy):
     def compute_loss(self, data):
         data = self.preprocess_input(data, train_mode=True)
 
-
-        actions = data[self.action_key]
+        actions = data["actions"]
 
         # TODO: currently it doesn't work with frame_stack > 1 because it assumes that
         # for each stacked frame we have a corresponding action sequence starting from
@@ -73,7 +75,7 @@ class Baku(ChunkPolicy):
         # arrange them accordingly. I believe this is similar to vqbet
         pred_action = self(data)
 
-        B, F, D = actions.shape
+        B, T, D = actions.shape
         actions = einops.rearrange(actions, "b t d -> b (t d)")
         # TODO: change this when you fix the above issue with frame stacking
         actions = einops.repeat(actions, "b d -> b 1 d")
@@ -86,8 +88,14 @@ class Baku(ChunkPolicy):
         data = self.preprocess_input(data, train_mode=False)
         with torch.no_grad():
             pred_action = self(data)
-            actions = einops.rearrange(pred_action.mean, 'b fs (t d) -> b t fs d', t=self.chunk_size)
-            actions = actions[:, :, -1] # take the actions corresponding to the last frame in the frame stack
+            actions = einops.rearrange(
+                pred_action.mean, "b fs (t d) -> b t fs d", t=self.chunk_size
+            )
+            actions = actions[
+                :, :, -1
+            ]  # take the actions corresponding to the last frame in the frame stack
+
+            actions = torch.clamp(actions, -1, 1)
             
         return actions.cpu().numpy()
 
@@ -118,13 +126,12 @@ class GPTTrunk(nn.Module):
         )
 
     def forward(self, obs, prompt):
-        B, F, T, D = obs.shape
+        B, T, D = obs.shape
         B, D = prompt.shape
 
         # insert action token at each self._num_feat_per_step interval
-        action_token = einops.repeat(self._action_token, "d -> b f 1 d", b=B, f=F)
-        obs = torch.cat([obs, action_token], dim=2)
-        obs = einops.rearrange(obs, "b f t d -> b (f t) d")
+        action_token = einops.repeat(self._action_token, "d -> b 1 d", b=B)
+        obs = torch.cat([obs, action_token], dim=1)
         prompt = einops.rearrange(prompt, "b d -> b 1 d")
         obs = torch.cat([prompt, obs], dim=1)
 

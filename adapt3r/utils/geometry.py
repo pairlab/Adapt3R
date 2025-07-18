@@ -6,6 +6,7 @@ Mostly copied from transforms3d library
 import math
 
 import numpy as np
+import torch
 
 _FLOAT_EPS = np.finfo(np.float64).eps
 
@@ -478,3 +479,101 @@ def posRotMat2Mat(pos, rot_mat):
     t_mat[:3, :3] = rot_mat
     t_mat[:3, 3] = np.array(pos)
     return t_mat
+
+def posRotMat2Mat_batch(pos, rot_mat):
+    t_mat = torch.eye(4, device=pos.device).repeat((pos.shape[0], 1, 1))
+    t_mat[:, :3, :3] = rot_mat
+    t_mat[:, :3, 3] = pos
+    return t_mat
+
+def batch_axis_angle_to_rotation_matrix(axes, angles):
+    """
+    Convert a batch of axis-angle representations to rotation matrices. Source: ChatGPT
+
+    Parameters:
+    axes (torch.Tensor): A tensor of shape (N, 3) representing the axes of rotation (must be unit vectors).
+    angles (torch.Tensor): A tensor of shape (N,) representing the angles of rotation in radians.
+
+    Returns:
+    torch.Tensor: A tensor of shape (N, 3, 3) containing the rotation matrices.
+    """
+    x, y, z = axes[:, 0], axes[:, 1], axes[:, 2]
+    
+    # Compute the skew-symmetric matrices K for each axis
+    zeros = torch.zeros_like(x)
+    K = torch.stack([
+        torch.stack([zeros, -z, y], dim=1),
+        torch.stack([z, zeros, -x], dim=1),
+        torch.stack([-y, x, zeros], dim=1)
+    ], dim=1)
+    
+    # Compute the identity matrix for each batch
+    I = torch.eye(3, device=axes.device).unsqueeze(0).repeat(axes.size(0), 1, 1)
+    
+    # Reshape angles for broadcasting
+    angles = angles.view(-1, 1, 1)
+    
+    # Compute the rotation matrices using Rodrigues' rotation formula
+    R = I + torch.sin(angles) * K + (1 - torch.cos(angles)) * torch.matmul(K, K)
+
+    return R
+
+
+def batch_rotation_matrix_to_axis_angle(rotation_matrices):
+    """
+    Convert a batch of rotation matrices to axis-angle representations.
+    Source: ChatGPT
+
+    Parameters:
+    rotation_matrices (torch.Tensor): A tensor of shape (N, 3, 3) representing rotation matrices.
+
+    Returns:
+    tuple: A tuple containing:
+        - axes (torch.Tensor): A tensor of shape (N, 3) representing the rotation axes (unit vectors).
+        - angles (torch.Tensor): A tensor of shape (N,) representing the rotation angles in radians.
+    """
+    # Compute the trace of the rotation matrices
+    trace = rotation_matrices.diagonal(offset=0, dim1=-2, dim2=-1).sum(-1)
+    
+    # Compute the angle of rotation
+    angles = torch.acos(((trace - 1) / 2).clamp(-1, 1))
+    
+    # Compute the axis of rotation
+    r21_r12 = rotation_matrices[..., 2, 1] - rotation_matrices[..., 1, 2]
+    r02_r20 = rotation_matrices[..., 0, 2] - rotation_matrices[..., 2, 0]
+    r10_r01 = rotation_matrices[..., 1, 0] - rotation_matrices[..., 0, 1]
+    
+    axes = torch.stack([r21_r12, r02_r20, r10_r01], dim=1)
+    
+    # Avoid division by zero by clamping sin(angles) to a minimum value
+    sin_angles = torch.sin(angles).unsqueeze(1)
+    axes = axes / (2 * sin_angles.clamp(min=1e-10))
+    
+    # Handle the case when angle is close to 0 (no rotation)
+    axes = torch.where(sin_angles < 1e-10, torch.zeros_like(axes), axes)
+    
+    return axes, angles
+
+
+def axis_angle_to_rotation_matrix(axis, angle):
+    """
+    Convert an axis-angle representation to a rotation matrix.
+    Parameters:
+    axis (numpy.ndarray): A 3-element array representing the axis of rotation (must be a unit vector).
+    angle (float): The angle of rotation in radians.
+    Returns:
+    numpy.ndarray: A 3x3 rotation matrix.
+    """
+    # Ensure the axis is a unit vector
+    axis = axis / np.linalg.norm(axis)
+    x, y, z = axis
+    # Compute the skew-symmetric matrix K
+    K = np.array([
+    [0, -z, y],
+    [z, 0, -x],
+    [-y, x, 0]
+    ])
+    # Compute the rotation matrix using Rodrigues' rotation formula
+    I = np.eye(3)
+    R = I + np.sin(angle) * K + (1 - np.cos(angle)) * np.dot(K, K)
+    return R

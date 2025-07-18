@@ -7,11 +7,13 @@ from natsort import natsorted
 # from IPython.core import ultratb
 from libero.libero import benchmark
 from tqdm import tqdm, trange
-import adapt3r.utils.pytorch3d_transforms as pt
+from scipy.spatial.transform import Rotation
+import adapt3r.utils.point_cloud_utils as pcu
+import matplotlib
+import matplotlib.pyplot as plt
 import torch
 
-import adapt3r.env.libero.utils as lu
-
+import adapt3r.envs.libero.utils as lu
 
 from hydra.utils import instantiate
 
@@ -20,6 +22,7 @@ compress_keys = {
     'agentview_pointcloud_full'
 }
 
+# rotation_transformer = 
 
 def dump_demo(demo, file_path, demo_i, attrs=None):
     with h5py.File(file_path, 'a') as f:
@@ -79,9 +82,9 @@ def process_demo(old_demo, env):
         # read pos and ori from robots
         controller = env.env.robots[0].controller
         goal_pos = controller.goal_pos
-        goal_ori = pt.matrix_to_rotation_6d(torch.tensor(controller.goal_ori)).numpy()
-
-        abs_action = np.concatenate((goal_pos, goal_ori, actions[t][..., -1:]))
+        goal_ori = Rotation.from_matrix(controller.goal_ori).as_rotvec()
+        gripper = actions[t][..., -1:]
+        abs_action = np.concatenate((goal_pos, goal_ori, gripper))
         
         success = success or info['success']
 
@@ -129,7 +132,7 @@ def main(cfg):
 
     # define source and destination directories
     source_dir = os.path.join(cfg.data_prefix, cfg.task.suite_name, cfg.task.benchmark_name + '_unprocessed')
-    save_dir = os.path.join(cfg.data_prefix, cfg.task.suite_name, cfg.task.benchmark_name + '_processed')
+    save_dir = os.path.join(cfg.data_prefix, cfg.task.suite_name, cfg.task.benchmark_name)
     os.makedirs(save_dir, exist_ok=True)
 
     print(source_dir)
@@ -150,7 +153,6 @@ def main(cfg):
     for task_no, task_name in enumerate(task_names):
         if task_nums is not None and task_no not in task_nums:
             continue
-
         task_name = task_names[task_no]
         setting, number, _ = lu.deconstruct_task_name(task_name)
         

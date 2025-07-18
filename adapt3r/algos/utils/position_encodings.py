@@ -5,6 +5,48 @@ import math
 import torch
 import torch.nn as nn
 import einops
+import numpy as np
+
+
+def posemb_sincos(pos: np.ndarray, embedding_dim: int, min_period: float, max_period: float) -> np.ndarray:
+    """Computes sine-cosine positional embedding vectors for scalar positions using NumPy."""
+    if embedding_dim % 2 != 0:
+        raise ValueError(f"embedding_dim ({embedding_dim}) must be divisible by 2")
+    
+    fraction = np.linspace(0.0, 1.0, embedding_dim // 2)
+    period = min_period * (max_period / min_period) ** fraction
+    sinusoid_input = np.outer(pos, 1.0 / period * 2 * np.pi)
+    
+    return np.concatenate([np.sin(sinusoid_input), np.cos(sinusoid_input)], axis=-1)
+
+
+class SinusoidalPosEmb2(nn.Module):
+    """
+    Based on pi's emb from OpenPI Zero implementation.
+    Computes sine-cosine positional embedding vectors for scalar positions.
+    """
+
+    def __init__(self, embedding_dim, min_period, max_period):
+        super().__init__()
+
+        if embedding_dim % 2 != 0:
+            raise ValueError(f"embedding_dim ({embedding_dim}) must be divisible by 2")
+
+        self.embedding_dim = embedding_dim
+        self.min_period = min_period
+        self.max_period = max_period
+
+        # Precompute fraction and store as a buffer
+        fraction = torch.linspace(0.0, 1.0, embedding_dim // 2)
+        self.register_buffer("period", min_period * (max_period / min_period) ** fraction)
+
+    def forward(self, pos: torch.Tensor) -> torch.Tensor:
+        """
+        pos: Tensor of shape (B,)
+        Returns: Tensor of shape (B, embedding_dim)
+        """
+        sinusoid_input = pos.unsqueeze(-1) * (2 * torch.pi / self.period)  # Shape (B, embedding_dim//2)
+        return torch.cat([torch.sin(sinusoid_input), torch.cos(sinusoid_input)], dim=-1)
 
 
 class SinusoidalPosEmb(nn.Module):
@@ -23,7 +65,7 @@ class SinusoidalPosEmb(nn.Module):
         return emb
     
 
-class NeRFSinusoidalPosEmb(nn.Module):
+class SinusoidalPosEmb3D(nn.Module):
 
     def __init__(self, dim):
         super().__init__()
@@ -32,6 +74,27 @@ class NeRFSinusoidalPosEmb(nn.Module):
 
     @torch.no_grad()
     def forward(self, x):
+        device = x.device
+        sixth_dim = self.dim // 6
+        emb = math.log(10000) / (sixth_dim - 1)
+        emb = torch.exp(torch.arange(sixth_dim, device=device) * -emb)
+        emb = emb.view(1, 1, 1, -1)
+        x = x.unsqueeze(-1)
+        emb = x * emb
+        emb = torch.cat((emb.sin(), emb.cos()), dim=-1)
+        emb = einops.rearrange(emb, 'b n i j -> b n (i j)')
+        return emb
+    
+
+class NeRFSinusoidalPosEmb(nn.Module):
+
+    def __init__(self, dim: int):
+        super().__init__()
+        self.dim = dim
+        assert dim % 6 == 0, 'dim must be divisible by 6'
+
+    @torch.no_grad()
+    def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
         device = x.device
         n_steps = self.dim // 6
         max_freq = n_steps - 1
@@ -42,7 +105,7 @@ class NeRFSinusoidalPosEmb(nn.Module):
         x = x.unsqueeze(-1)
         emb = freq_bands * x
         emb = torch.cat((emb.sin(), emb.cos()), dim=-1)
-        emb = einops.rearrange(emb, 'b n i j -> b n (i j)')
+        emb = einops.rearrange(emb, '... i j -> ... (i j)')
         return emb
 
 
@@ -122,3 +185,48 @@ class RotaryPositionEncoding3D(RotaryPositionEncoding):
 
         return position_code
 
+
+class LearnedAbsolutePositionEncoding3D(nn.Module):
+    def __init__(self, input_dim, embedding_dim):
+        super().__init__()
+        self.absolute_pe_layer = nn.Sequential(
+            nn.Conv1d(input_dim, embedding_dim, kernel_size=1),
+            nn.BatchNorm1d(embedding_dim),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(embedding_dim, embedding_dim, kernel_size=1)
+        )
+
+    def forward(self, xyz):
+        """
+        Arguments:
+            xyz: (B, N, 3) tensor of the (x, y, z) coordinates of the points
+
+        Returns:
+            absolute_pe: (B, N, embedding_dim) tensor of the absolute position encoding
+        """
+        return self.absolute_pe_layer(xyz.permute(0, 2, 1)).permute(0, 2, 1)
+
+
+class LearnedAbsolutePositionEncoding3Dv2(nn.Module):
+    def __init__(self, input_dim, embedding_dim, norm="none"):
+        super().__init__()
+        norm_tb = {
+            "none": nn.Identity(),
+            "bn": nn.BatchNorm1d(embedding_dim),
+        }
+        self.absolute_pe_layer = nn.Sequential(
+            nn.Conv1d(input_dim, embedding_dim, kernel_size=1),
+            norm_tb[norm],
+            nn.ReLU(inplace=True),
+            nn.Conv1d(embedding_dim, embedding_dim, kernel_size=1)
+        )
+
+    def forward(self, xyz):
+        """
+        Arguments:
+            xyz: (B, N, 3) tensor of the (x, y, z) coordinates of the points
+
+        Returns:
+            absolute_pe: (B, N, embedding_dim) tensor of the absolute position encoding
+        """
+        return self.absolute_pe_layer(xyz.permute(0, 2, 1)).permute(0, 2, 1)

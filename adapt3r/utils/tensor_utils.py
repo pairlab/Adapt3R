@@ -41,7 +41,6 @@ def separate_no_decay(module,
         for name in name_blacklist:
             if name in mn:
                 bl = True
-                # print(name)
                 break
         if bl:
             continue
@@ -147,6 +146,7 @@ def map_tensor(x, func):
         {
             torch.Tensor: func,
             type(None): lambda x: x,
+            str: lambda x: x,
         }
     )
 

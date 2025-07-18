@@ -1,0 +1,15 @@
+defaults:
+  - base
+  - _self_
+
+_target_: adapt3r.algos.utils.diffuser_actor_utils.encoder.Encoder
+backbone: clip
+image_size: [128, 128]
+embedding_dim: ${algo.embed_dim}
+num_sampling_level: 1
+nhist: ${algo.frame_stack}
+num_vis_ins_attn_layers: 2
+fps_subsampling_factor: 5
+
+load_image: true
+load_depth: true

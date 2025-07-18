@@ -1,5 +1,6 @@
 import dgl.geometry as dgl_geo
 import einops
+# import pytorch3d.ops as torch3d_ops
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -9,9 +10,10 @@ from .clip import load_clip
 from .layers import FFWRelativeCrossAttentionModule, ParallelAttention
 from .position_encodings import RotaryPositionEncoding3D
 from .resnet import load_resnet18, load_resnet50
+from adapt3r.algos.encoders.point_cloud_base import PointCloudBaseEncoder
 
 
-class Encoder(nn.Module):
+class Encoder(PointCloudBaseEncoder):
 
     def __init__(
         self,
@@ -19,13 +21,17 @@ class Encoder(nn.Module):
         image_size=(256, 256),
         embedding_dim=60,
         num_sampling_level=3,
-        nhist=3,
         num_attn_heads=8,
         num_vis_ins_attn_layers=2,
         fps_subsampling_factor=5,
         beefy=False,
+        **kwargs,
     ):
-        super().__init__()
+        super().__init__(
+            downsample_mode='feat',
+            do_hand_crop=False,
+            **kwargs,
+        )
         assert backbone in ["resnet50", "resnet18", "clip"]
         assert image_size in [(128, 128), (256, 256)]
         assert num_sampling_level in [1, 2, 3, 4]
@@ -34,7 +40,7 @@ class Encoder(nn.Module):
         self.num_sampling_level = num_sampling_level
         self.fps_subsampling_factor = fps_subsampling_factor
 
-        # Frozen backbone
+        # Initialize backbone
         if backbone == "resnet50":
             self.backbone, self.normalize = load_resnet50()
         elif backbone == "resnet18":
@@ -44,42 +50,24 @@ class Encoder(nn.Module):
         for p in self.backbone.parameters():
             p.requires_grad = False
 
-        # Semantic visual features at different scales
+        # Initialize feature pyramid network
         self.feature_pyramid = FeaturePyramidNetwork([256, 512], embedding_dim)
+
+        # Set feature map pyramid based on image size
         if self.image_size == (128, 128):
-            # Coarse RGB features are the 2nd layer of the feature pyramid
-            # at 1/4 resolution (32x32)
-            # Fine RGB features are the 1st layer of the feature pyramid
-            # at 1/2 resolution (64x64)
-            if beefy:
-                self.feature_map_pyramid = ["res2", "res1", "res1", "res1"]
-            else:
-                self.feature_map_pyramid = ["res3", "res1", "res1", "res1"]
+            self.feature_map_pyramid = ["res3", "res1", "res1", "res1"] if not beefy else ["res2", "res1", "res1", "res1"]
             self.downscaling_factor_pyramid = [4, 2, 2, 2]
         elif self.image_size == (256, 256):
-            # Coarse RGB features are the 3rd layer of the feature pyramid
-            # at 1/8 resolution (32x32)
-            # Fine RGB features are the 1st layer of the feature pyramid
-            # at 1/2 resolution (128x128)
             self.feature_map_pyramid = ["res3", "res1", "res1", "res1"]
             self.downscaling_factor_pyramid = [8, 2, 2, 2]
 
-        # 3D relative positional embeddings
+        # Initialize position encoding and attention modules
         self.relative_pe_layer = RotaryPositionEncoding3D(embedding_dim)
-
-        # Current gripper learnable features
-        self.curr_gripper_embed = nn.Embedding(nhist, embedding_dim)
-        self.gripper_context_head = FFWRelativeCrossAttentionModule(
-            embedding_dim, num_attn_heads, num_layers=3, use_adaln=False
-        )
-
-        # Goal gripper learnable features
+        self.curr_gripper_embed = nn.Embedding(self.frame_stack, embedding_dim)
         self.goal_gripper_embed = nn.Embedding(1, embedding_dim)
-
-        # Instruction encoder
         self.instruction_encoder = nn.Linear(512, embedding_dim)
-
-        # Attention from vision to language
+        
+        # Initialize vision-language attention
         layer = ParallelAttention(
             num_layers=num_vis_ins_attn_layers,
             d_model=embedding_dim,
@@ -89,34 +77,165 @@ class Encoder(nn.Module):
             cross_attention1=True,
             cross_attention2=False,
         )
-        self.vl_attention = nn.ModuleList([layer for _ in range(1) for _ in range(1)])
+        self.vl_attention = nn.ModuleList([layer for _ in range(1)])
+        
+        # Initialize gripper context head
+        self.gripper_context_head = FFWRelativeCrossAttentionModule(
+            embedding_dim, num_attn_heads, num_layers=3, use_adaln=False
+        )
 
-    def forward(self):
-        return None
+    def encode_images(self, obs):
+        """
+        Compute visual features and point cloud embeddings at different scales.
+
+        Args:
+            obs: Full observation dictionary containing:
+                - rgb: (B, ncam, 3, H, W), pixel intensities
+                - depth: (B, ncam, 1, H, W), depth values
+                - camera parameters and other metadata
+
+        Returns:
+            rgb_feats_pyramid: List of RGB features at different scales
+            pcd_pyramid: List of point cloud data at different scales
+        """
+        # Extract and stack RGB and depth observations
+        rgb_obs = []
+        depth_obs = []
+        for key in obs.keys():
+            if "rgb" in key or "image" in key:
+                rgb_obs.append(obs[key])
+            elif "depth" in key:
+                depth_obs.append(obs[key])
+
+        rgb = torch.stack(rgb_obs, dim=1)[:, :, 0]
+        depth = torch.stack(depth_obs, dim=1)[:, :, 0]
+        num_cameras = rgb.shape[1]
+
+        # Process RGB through backbone
+        rgb = einops.rearrange(rgb, "bt ncam c h w -> (bt ncam) c h w")
+        rgb = rgb / 255.
+        rgb = self.normalize(rgb)
+        rgb_features = self.backbone(rgb)
+        rgb_features = self.feature_pyramid(rgb_features)
+
+        # Build and process point cloud
+        pcd = self._build_point_cloud(obs)
+        pcd = torch.stack([pcd[cam] for cam in pcd.keys()], dim=2)  # [B, fs, ncam, H, W, 3]
+        pcd = einops.rearrange(pcd, "b fs ncam h w c -> (b fs ncam) c h w")
+
+        # Process features at different scales
+        rgb_feats_pyramid = []
+        pcd_pyramid = []
+        for i in range(self.num_sampling_level):
+            # Get features for current scale
+            rgb_features_i = rgb_features[self.feature_map_pyramid[i]]
+            feat_h, feat_w = rgb_features_i.shape[-2:]
+            
+            # Interpolate point cloud to match feature dimensions
+            pcd_i = F.interpolate(pcd, (feat_h, feat_w), mode="bilinear")
+            
+            # Reshape for multi-camera setup
+            h, w = pcd_i.shape[-2:]
+            pcd_i = einops.rearrange(pcd_i, "(bt ncam) c h w -> bt (ncam h w) c", ncam=num_cameras)
+            rgb_features_i = einops.rearrange(
+                rgb_features_i, "(bt ncam) c h w -> bt ncam c h w", ncam=num_cameras
+            )
+
+            rgb_feats_pyramid.append(rgb_features_i)
+            pcd_pyramid.append(pcd_i)
+
+        return rgb_feats_pyramid, pcd_pyramid
+
+    def crop_point_cloud(self, pcd):
+        """
+        Crop point cloud to valid region.
+
+        Args:
+            pcd: Point cloud data of shape (B, N, 3)
+            
+        Returns:
+            mask: Boolean mask of shape (B, N) indicating valid points
+        """
+        boundaries = torch.tensor(((-1, -1, -1), (1, 1, 1)), dtype=torch.float32, device=pcd.device)
+        boundaries = einops.repeat(boundaries, "i j -> b i j", b=pcd.shape[0])
+        pcd = einops.rearrange(pcd, "b n d -> b 1 n d")
+        return self._crop_point_cloud(pcd, boundaries=boundaries).squeeze(1)
+
+    def run_fps(self, pcd, rgb_features):
+        """
+        Run farthest point sampling on point cloud and features.
+
+        Args:
+            pcd: Point cloud data of shape (B, N, F, 2)
+            rgb_features: RGB features of shape (B, N, F)
+            
+        Returns:
+            Tuple of (downsampled_pcd, downsampled_features)
+        """
+        _, npts, _ = rgb_features.shape
+        num_points = max(npts // self.fps_subsampling_factor, 1)
+        
+        # Reshape for downsampling
+        pcd = einops.rearrange(pcd, "b n d i -> b 1 n (d i)")
+        rgb_features = einops.rearrange(rgb_features, "b n d -> b 1 n d")
+        
+        # Apply downsampling
+        downsampled_pcd, downsampled_features, _, _ = self._downsample_point_cloud(
+            pcd=pcd,
+            rgb_features=rgb_features,
+            num_points=num_points,
+        )
+        
+        # Reshape back to original format
+        downsampled_pcd = einops.rearrange(downsampled_pcd, "b 1 n (d i) -> b n d i", i=2)
+        downsampled_features = einops.rearrange(downsampled_features, "b 1 n d -> n b d")
+        
+        return downsampled_pcd, downsampled_features
+
+    def encode_instruction(self, instruction):
+        """
+        Encode instruction text into features.
+
+        Args:
+            instruction: Instruction embeddings of shape (B, max_instruction_length, 512)
+
+        Returns:
+            Tuple of (instruction features, dummy positional embeddings)
+        """
+        instr_feats = self.instruction_encoder(instruction)
+        instr_dummy_pos = torch.zeros(
+            len(instruction), instr_feats.shape[1], 3, device=instruction.device
+        )
+        instr_dummy_pos = self.relative_pe_layer(instr_dummy_pos)
+        return instr_feats, instr_dummy_pos
 
     def encode_curr_gripper(self, curr_gripper, context_feats, context):
         """
-        Compute current gripper position features and positional embeddings.
+        Encode current gripper state.
 
         Args:
-            - curr_gripper: (B, nhist, 3+)
+            curr_gripper: Current gripper state of shape (B, nhist, 3+)
+            context_feats: Context features
+            context: Context point cloud
 
         Returns:
-            - curr_gripper_feats: (B, nhist, F)
-            - curr_gripper_pos: (B, nhist, F, 2)
+            Tuple of (gripper features, gripper positional embeddings)
         """
-        return self._encode_gripper(curr_gripper, self.curr_gripper_embed, context_feats, context)
+        if curr_gripper is not None:
+            return self._encode_gripper(curr_gripper, self.curr_gripper_embed, context_feats, context)
+        return None, None
 
     def encode_goal_gripper(self, goal_gripper, context_feats, context):
         """
-        Compute goal gripper position features and positional embeddings.
+        Encode goal gripper state.
 
         Args:
-            - goal_gripper: (B, 3+)
+            goal_gripper: Goal gripper state of shape (B, 3+)
+            context_feats: Context features
+            context: Context point cloud
 
         Returns:
-            - goal_gripper_feats: (B, 1, F)
-            - goal_gripper_pos: (B, 1, F, 2)
+            Tuple of (gripper features, gripper positional embeddings)
         """
         goal_gripper_feats, goal_gripper_pos = self._encode_gripper(
             goal_gripper[:, None], self.goal_gripper_embed, context_feats, context
@@ -125,21 +244,18 @@ class Encoder(nn.Module):
 
     def _encode_gripper(self, gripper, gripper_embed, context_feats, context):
         """
-        Compute gripper position features and positional embeddings.
+        Encode gripper state with context.
 
         Args:
-            - gripper: (B, npt, 3+)
-            - context_feats: (B, npt, C)
-            - context: (B, npt, 3)
+            gripper: Gripper state of shape (B, npt, 3+)
+            gripper_embed: Gripper embedding layer
+            context_feats: Context features
+            context: Context point cloud
 
         Returns:
-            - gripper_feats: (B, npt, F)
-            - gripper_pos: (B, npt, F, 2)
+            Tuple of (gripper features, gripper positional embeddings)
         """
-        # Learnable embedding for gripper
         gripper_feats = gripper_embed.weight.unsqueeze(0).repeat(len(gripper), 1, 1)
-
-        # Rotary positional encoding
         gripper_pos = self.relative_pe_layer(gripper[..., :3])
         context_pos = self.relative_pe_layer(context)
 
@@ -152,99 +268,19 @@ class Encoder(nn.Module):
 
         return gripper_feats, gripper_pos
 
-    def encode_images(self, rgb, pcd):
-        """
-        Compute visual features/pos embeddings at different scales.
-
-        Args:
-            - rgb: (B, ncam, 3, H, W), pixel intensities
-            - pcd: (B, ncam, 3, H, W), positions
-
-        Returns:
-            - rgb_feats_pyramid: [(B, ncam, F, H_i, W_i)]
-            - pcd_pyramid: [(B, ncam * H_i * W_i, 3)]
-        """
-        num_cameras = rgb.shape[1]
-
-        # Pass each view independently through backbone
-        rgb = einops.rearrange(rgb, "bt ncam c h w -> (bt ncam) c h w")
-        rgb = self.normalize(rgb)
-        rgb_features = self.backbone(rgb)
-
-        # Pass visual features through feature pyramid network
-        rgb_features = self.feature_pyramid(rgb_features)
-
-        # Treat different cameras separately
-        pcd = einops.rearrange(pcd, "bt ncam c h w -> (bt ncam) c h w")
-
-        rgb_feats_pyramid = []
-        pcd_pyramid = []
-        for i in range(self.num_sampling_level):
-            # Isolate level's visual features
-            rgb_features_i = rgb_features[self.feature_map_pyramid[i]]
-
-            # Interpolate xy-depth to get the locations for this level
-            feat_h, feat_w = rgb_features_i.shape[-2:]
-            pcd_i = F.interpolate(pcd, (feat_h, feat_w), mode="bilinear")
-
-            # Merge different cameras for clouds, separate for rgb features
-            h, w = pcd_i.shape[-2:]
-            pcd_i = einops.rearrange(pcd_i, "(bt ncam) c h w -> bt (ncam h w) c", ncam=num_cameras)
-            rgb_features_i = einops.rearrange(
-                rgb_features_i, "(bt ncam) c h w -> bt ncam c h w", ncam=num_cameras
-            )
-
-            rgb_feats_pyramid.append(rgb_features_i)
-            pcd_pyramid.append(pcd_i)
-
-
-        return rgb_feats_pyramid, pcd_pyramid
-
-    def encode_instruction(self, instruction):
-        """
-        Compute language features/pos embeddings on top of CLIP features.
-
-        Args:
-            - instruction: (B, max_instruction_length, 512)
-
-        Returns:
-            - instr_feats: (B, 53, F)
-            - instr_dummy_pos: (B, 53, F, 2)
-        """
-        instr_feats = self.instruction_encoder(instruction)
-        # Dummy positional embeddings, all 0s
-        instr_dummy_pos = torch.zeros(
-            len(instruction), instr_feats.shape[1], 3, device=instruction.device
-        )
-        instr_dummy_pos = self.relative_pe_layer(instr_dummy_pos)
-        return instr_feats, instr_dummy_pos
-
-    def run_fps(self, context_features, context_pos):
-        # context_features (Np, B, F)
-        # context_pos (B, Np, F, 2)
-        # outputs of analogous shape, with smaller Np
-        npts, bs, ch = context_features.shape
-
-        # Sample points with FPS
-        sampled_inds = dgl_geo.farthest_point_sampler(
-            einops.rearrange(context_features[..., :30], "npts b c -> b npts c").to(torch.float64),
-            max(npts // self.fps_subsampling_factor, 1),
-            0,
-        ).long()
-
-        # Sample features
-        expanded_sampled_inds = sampled_inds.unsqueeze(-1).expand(-1, -1, ch)
-        sampled_context_features = torch.gather(
-            context_features, 0, einops.rearrange(expanded_sampled_inds, "b npts c -> npts b c")
-        )
-
-        # Sample positional embeddings
-        _, _, ch, npos = context_pos.shape
-        expanded_sampled_inds = sampled_inds.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, ch, npos)
-        sampled_context_pos = torch.gather(context_pos, 1, expanded_sampled_inds)
-        return sampled_context_features, sampled_context_pos
-
     def vision_language_attention(self, feats, instr_feats, feats_mask=None, instr_mask=None):
+        """
+        Apply vision-language attention.
+
+        Args:
+            feats: Visual features
+            instr_feats: Instruction features
+            feats_mask: Optional mask for visual features
+            instr_mask: Optional mask for instruction features
+
+        Returns:
+            Attended visual features
+        """
         feats, _ = self.vl_attention[0](
             seq1=feats,
             seq1_key_padding_mask=feats_mask,

@@ -1,0 +1,24 @@
+defaults:
+  - base
+  - _self_
+
+_target_: adapt3r.algos.encoders.rgb.RGBEncoder
+image_encoder_factory:
+  _target_: adapt3r.algos.encoders.rgb_modules.ResnetEncoder
+  _partial_: true
+  output_size: ${algo.image_embed_dim}
+  pretrained: true
+  freeze: false
+  remove_layer_num: 4
+  no_stride: false
+  language_fusion: film
+  replace_bn_with_gn: false
+lowdim_encoder_factory:
+  _target_: adapt3r.algos.utils.mlp_proj.MLPProj
+  _partial_: true
+  output_size: ${algo.lowdim_embed_dim}
+  num_layers: 1
+share_image_encoder: true
+share_lowdim_encoder: true
+language_fusion: true
+

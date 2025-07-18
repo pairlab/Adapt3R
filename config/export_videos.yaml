@@ -1,8 +1,21 @@
 defaults:
-  - task: metaworld_ml45
-  - algo: quest
+  - task: libero
+  - algo: diffusion_policy
   - _self_
 
+mode: export  # Mode can be 'evaluate' or 'export'
+video_mode: mp4  # Can be 'mp4' or 'images'
+
+exp_name: debug # 
+variant_name: null
+seed: 10000
+device: cuda:0
+output_prefix: ./experiments
+data_prefix: ./data
+make_unique_experiment_dir: true
+save_hdf5: false
+
+checkpoint_path: null
 
 training:
   use_tqdm: true
@@ -14,21 +27,7 @@ training:
 rollout:
   enabled: true
   interval: 10
-  rollouts_per_env: 1
+  rollouts_per_env: ${eval:"100 if ${task.n_tasks} == 1 else 1"}
   max_episode_length: ${task.horizon}
   num_parallel_envs: 1
-  n_video: 1
-
-
-
-exp_name: debug # 
-variant_name: null
-seed: 10000
-device: cuda:0
-output_prefix: ./experiments
-data_prefix: ./data
-make_unique_experiment_dir: true
-allow_no_ckpt: false
-
-checkpoint_path: null
-
+  n_video: 1000000

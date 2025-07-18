@@ -1,30 +1,28 @@
 defaults:
-  - lowdim_encoder_factory: mlp
+  - base
+  - _self_
 
-_target_: adapt3r.algos.utils.encoder.HybridEncoder
-shape_meta: ${task.shape_meta}
-lang_embed_dim: ${algo.lang_embed_dim}
+_target_: adapt3r.algos.encoders.dp3.DP3Encoder
 backbone_type: clip
 pointcloud_extractor_factory:
-  _target_: adapt3r.algos.utils.pointnet_extractor.PointNetEncoder
+  _target_: adapt3r.algos.utils.pointnet_extractor.MaxExtractor
   _partial_: true
   out_channels: ${algo.embed_dim}
   use_layernorm: false
   final_norm: "none"
   block_channel: [256, 256, 256, 512]
-  reduction: attention
+lowdim_encoder_factory:
+  _target_: adapt3r.algos.utils.mlp_proj.MLPProj
+  _partial_: true
+  output_size: ${algo.lowdim_embed_dim}
+  num_layers: 1
 num_points: 512
-hidden_dim: 60
 task_suite_name: ${task.suite_name}
 task_benchmark_name: ${task.benchmark_name}
-finetune: false
-hand_frame: false
-do_crop: true
-tight_crop: true
+do_rgb: false
 do_hand_crop: false
-downsample_mode: pos
-xyz_proj_type: none
-do_image: false
-do_lang: false
 
 
+
+load_image: ${algo.encoder.do_rgb}
+load_depth: true

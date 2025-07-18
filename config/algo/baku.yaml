@@ -9,23 +9,14 @@ policy:
   frame_stack: ${algo.frame_stack}
   embed_dim: ${algo.embed_dim}
   policy_head: deterministic
+  eecf: ${algo.eecf}
+  normalizer: 
+    mode: identity
 
 
 name: baku
 
-lr: 0.0001
-weight_decay: 0.0001
-
 embed_dim: 256
 action_horizon: 2
 
-chunk_size: 16 # this is output action sequence length
-frame_stack: 1 # this is input observation sequence length
-
-dataset:
-  seq_len: ${algo.chunk_size}
-  frame_stack: ${algo.frame_stack}
-  obs_seq_len: 1
-  lowdim_obs_seq_len: null
-  load_obs_for_pretrain: true
-  load_next_obs: false
+abs_action: false

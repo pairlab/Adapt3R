@@ -5,8 +5,14 @@ defaults:
 policy:
   action_horizon: ${algo.action_horizon}
   chunk_size: ${algo.chunk_size}
-  temporal_agg: true
+  temporal_agg: ${algo.temporal_agg}
 
 
+# stop trying to delete these
+temporal_agg: true
 chunk_size: 16 # this is output action sequence length
+action_horizon: 8 # mpc horizon for execution
 
+
+dataset:
+  seq_len: ${algo.chunk_size}

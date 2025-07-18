@@ -1,13 +1,12 @@
 import einops
-import matplotlib.pyplot as plt
 import adapt3r.utils.pytorch3d_transforms as pt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 
+import adapt3r.envs.libero.utils as lu
 from adapt3r.algos.base import ChunkPolicy
-from adapt3r.algos.utils.diffuser_actor_utils.encoder import Encoder
 from adapt3r.algos.utils.diffuser_actor_utils.layers import (
     FFWRelativeCrossAttentionModule,
     FFWRelativeSelfAttentionModule,
@@ -18,21 +17,13 @@ from adapt3r.algos.utils.diffuser_actor_utils.position_encodings import (
     RotaryPositionEncoding3D,
     SinusoidalPosEmb,
 )
-from adapt3r.algos.utils.diffuser_actor_utils.utils import normalise_quat
-import adapt3r.env.libero.utils as lu
-
-from adapt3r.utils.point_cloud_utils import show_point_cloud
 
 
 class DiffuserActor(ChunkPolicy):
     def __init__(
         self,
-        backbone="clip",
-        image_size=(256, 256),
         embedding_dim=60,
-        num_vis_ins_attn_layers=2,
         use_instruction=True,
-        fps_subsampling_factor=5,
         diffusion_timesteps=100,
         inference_timesteps=10,
         nhist=3,
@@ -50,17 +41,6 @@ class DiffuserActor(ChunkPolicy):
         self.nhist = nhist
         self.inference_timesteps = inference_timesteps
         self.do_crop = do_crop
-        assert self.abs_action, 'diffuser actor is only compatible with abs actions'
-        self.encoder = Encoder(
-            backbone=backbone,
-            image_size=image_size,
-            embedding_dim=embedding_dim,
-            num_sampling_level=1,
-            nhist=nhist,
-            num_vis_ins_attn_layers=num_vis_ins_attn_layers,
-            fps_subsampling_factor=fps_subsampling_factor,
-            beefy=beefy,
-        )
         self.prediction_head = DiffusionHead(
             embedding_dim=embedding_dim,
             use_instruction=use_instruction,
@@ -82,24 +62,25 @@ class DiffuserActor(ChunkPolicy):
         # Move modules to the correct device
         self.encoder = self.encoder.to(self.device)
         self.prediction_head = self.prediction_head.to(self.device)
-        # self.gripper_loc_bounds = self.gripper_loc_bounds.to(self.device)
 
         if task_suite_name == "libero":
             boundaries = lu.get_boundaries(benchmark_name=task_benchmark_name, tight=True)
-        elif task_suite_name == 'metaworld':
-            boundaries = torch.tensor(((-1, -1, -1), (1, 1, 1)))
+        elif task_suite_name == 'mimicgen':
+            boundaries = torch.tensor(((-1, -1, 0), (1, 1, 2)))
             boundaries = einops.repeat(boundaries, "i j -> 50 i j")
         self.register_buffer("boundaries", torch.tensor(boundaries, dtype=torch.float32))
         # This just helps with pylance
         self.boundaries = self.boundaries
+        self.build_pointcloud = True
+
+        assert self.abs_action, "DiffuserActor requires abs_action=True"
 
     def compute_loss(self, data):
         data = self.preprocess_input(data, train_mode=True)
-        gt_trajectory, rgb_obs, pcd_obs, instruction, curr_gripper = self.parse_batch(data)
+        gt_trajectory, obs_data, instruction, curr_gripper = self.parse_batch(data)
         loss = self.forward(
             gt_trajectory=gt_trajectory,
-            rgb_obs=rgb_obs,
-            pcd_obs=pcd_obs,
+            obs_data=obs_data,
             instruction=instruction,
             curr_gripper=curr_gripper,
             run_inference=False,
@@ -110,66 +91,55 @@ class DiffuserActor(ChunkPolicy):
 
     def sample_actions(self, data):
         data = self.preprocess_input(data, train_mode=False)
-        _, rgb_obs, pcd_obs, instruction, curr_gripper = self.parse_batch(data)
+        _, obs_data, instruction, curr_gripper = self.parse_batch(data)
         trajectory = self.forward(
             gt_trajectory=None,
-            rgb_obs=rgb_obs,
-            pcd_obs=pcd_obs,
+            obs_data=obs_data,
             instruction=instruction,
             curr_gripper=curr_gripper,
             run_inference=True,
             task_id=data["task_id"],
         )
-        actions = trajectory.detach()
+        actions = trajectory.detach().cpu().numpy()
         return actions
 
     def parse_batch(self, data):
-        obs = data["obs"]
+        obs_data = data["obs"]
 
-        if "abs_actions" in data:
-            gt_trajectory = data["abs_actions"]
+        if "actions" in data:
+            gt_trajectory = data["actions"]
 
+            # Assume 6D rotation representation
             pos, rot, gripper = torch.split(gt_trajectory, [3, 6, 1], dim=-1)
+            
+            # We assume that the gripper is normalized to [-1, 1], so this unnormalizes it to [0, 1]
             gripper = (1 - gripper) / 2
             gt_trajectory = torch.cat((pos, rot, gripper), dim=-1)
         else:
             gt_trajectory = None
 
-        rgb_obs = []
-        pcd_obs = []
-        for key in obs.keys():
-            if "rgb" in key:
-                rgb_obs.append(obs[key])
-            elif "pointcloud_full" in key:
-                pcd_obs.append(obs[key])
-
-        rgb_obs = torch.stack(rgb_obs, dim=1)[:, :, 0]
-        pcd_obs = torch.stack(pcd_obs, dim=1)[:, :, 0]
-
-        pcd_obs = einops.rearrange(pcd_obs, "b ncam h w c -> b ncam c h w")
-
         # Extract instruction embeddings (B, 512)
-        instruction = data["task_emb"]
-        instruction = instruction.unsqueeze(1)  # (B, 1, 512)
+        if 'task_emb' in data:
+            instruction = data["task_emb"]
+            instruction = instruction.unsqueeze(1)  # (B, 1, 512)
+        else:
+            instruction = None
 
-        eef_pos = obs["robot0_eef_pos"]  # Position of the end-effector
-        hand_mat = obs["hand_mat"][..., :3, :3]  # Rotation matrices
-        eef_axis_angle = pt.matrix_to_axis_angle(hand_mat)
-        eef_rot = self.rotation_transformer.forward(eef_axis_angle)
-        # eef_quat = matrix_to_quaternion(hand_mat)  # Convert to quaternions
-        # TODO: eef_gripper has dimension 2 when I think it should have dimension 1.
-        # Nevertheless, it gets removed so I don't think that it matters
-        curr_gripper = torch.cat((eef_pos, eef_rot), dim=-1)
+        # Extract current gripper state for history (B, nhist, 8)
+        if "robot0_eef_pos" in obs_data:
+            eef_pos = obs_data["robot0_eef_pos"]  # Position of the end-effector
+            hand_mat = obs_data["hand_mat"][..., :3, :3]  # Rotation matrices
+            eef_6d = pt.matrix_to_rotation_6d(hand_mat)
+            curr_gripper = torch.cat((eef_pos, eef_6d), dim=-1)
+        else:
+            curr_gripper = None
 
-        # Extract gripper state (B, T, 1)
-
-        return gt_trajectory, rgb_obs, pcd_obs, instruction, curr_gripper
+        return gt_trajectory, obs_data, instruction, curr_gripper
 
     def forward(
         self,
         gt_trajectory,
-        rgb_obs,
-        pcd_obs,
+        obs_data,
         instruction,
         curr_gripper,
         run_inference=False,
@@ -178,26 +148,26 @@ class DiffuserActor(ChunkPolicy):
         if gt_trajectory is not None:
             gt_openess = gt_trajectory[..., 9:]
             gt_trajectory = gt_trajectory[..., :9]
-        curr_gripper = curr_gripper[..., :9]
+        if curr_gripper is not None:
+            curr_gripper = curr_gripper[..., :9]
 
         # gt_trajectory is expected to be in the quaternion format
         if run_inference:
             return self.compute_trajectory(
-                rgb_obs, pcd_obs, instruction, curr_gripper, task_id=task_id
+                obs_data, instruction, curr_gripper, task_id=task_id
             )
-        # Normalize all positions
+
+        # Normalize trajectory positions
         gt_trajectory = gt_trajectory.clone()
-        pcd_obs = pcd_obs.clone()
-        curr_gripper = curr_gripper.clone()
         gt_trajectory[:, :, :3] = self.normalize_pos(gt_trajectory[:, :, :3], task_id)
-        pcd_obs = torch.permute(
-            self.normalize_pos(torch.permute(pcd_obs, [0, 1, 3, 4, 2]), task_id), [0, 1, 4, 2, 3]
-        )
-        curr_gripper[..., :3] = self.normalize_pos(curr_gripper[..., :3], task_id)
+        
+        if curr_gripper is not None:
+            curr_gripper = curr_gripper.clone()
+            curr_gripper[..., :3] = self.normalize_pos(curr_gripper[..., :3], task_id)
 
         # Prepare inputs
         fixed_inputs = self.encode_inputs(
-            rgb_obs, pcd_obs, instruction, curr_gripper, task_id=task_id
+            obs_data, instruction, curr_gripper, task_id=task_id
         )
 
         # Condition on start-end pose
@@ -259,9 +229,9 @@ class DiffuserActor(ChunkPolicy):
             fps_pos=fps_pos,
         )
 
-    def encode_inputs(self, visible_rgb, visible_pcd, instruction, curr_gripper, task_id=None):
+    def encode_inputs(self, obs, instruction, curr_gripper, task_id=None):
         # Compute visual features/positional embeddings at different scales
-        rgb_feats_pyramid, pcd_pyramid = self.encoder.encode_images(visible_rgb, visible_pcd)
+        rgb_feats_pyramid, pcd_pyramid = self.encoder.encode_images(obs)
         # Keep only low-res scale
         context_feats = einops.rearrange(rgb_feats_pyramid[0], "b ncam c h w -> b (ncam h w) c")
         context = pcd_pyramid[0]
@@ -269,29 +239,7 @@ class DiffuserActor(ChunkPolicy):
 
         # We've already normalized the point cloud such that in-boundary points are in [-1, 1]
         if self.do_crop:
-            B, n_pts, d_feat = context_feats.shape
-
-            above_lower = torch.all(context > -1, dim=-1)
-            below_upper = torch.all(context < 1, dim=-1)
-            mask = torch.logical_and(above_lower, below_upper)
-
-            indices = torch.masked_fill(torch.cumsum(mask.int(), dim=1), ~mask, 0)
-            indices_repeat_3 = einops.repeat(indices, "b n -> b n k", k=3)
-            indices_repeat_feat = einops.repeat(indices, "b n -> b n k", k=d_feat)
-            context = torch.scatter(
-                input=torch.zeros((B, n_pts + 1, 3), device=device, dtype=context.dtype),
-                index=indices_repeat_3,
-                src=context,
-                dim=1,
-            )[:, 1:]
-            context_feats = torch.scatter(
-                input=torch.zeros((B, n_pts + 1, d_feat), device=device, dtype=context_feats.dtype),
-                index=indices_repeat_feat,
-                src=context_feats,
-                dim=1,
-            )[:, 1:]
-            # Update mask so that it accurately reflects which points are masked out of the pointcloud
-            mask = torch.all(context == 0, dim=-1)
+            mask = self.encoder.crop_point_cloud(context)
 
         if self._relative:
             context, curr_gripper = self.convert2rel(context, curr_gripper)
@@ -314,8 +262,8 @@ class DiffuserActor(ChunkPolicy):
         )
 
         # FPS on visual features (N, B, F) and (B, N, F, 2)
-        fps_feats, fps_pos = self.encoder.run_fps(
-            context_feats.transpose(0, 1), self.encoder.relative_pe_layer(context)
+        fps_pos, fps_feats = self.encoder.run_fps(
+            self.encoder.relative_pe_layer(context), context_feats  
         )
         return (
             context_feats,
@@ -372,28 +320,23 @@ class DiffuserActor(ChunkPolicy):
 
     def compute_trajectory(
         self,
-        rgb_obs,
-        pcd_obs,
+        obs,
         instruction,
         curr_gripper,
         task_id=None,
     ):
-        # Normalize all positions
-        pcd_obs = pcd_obs.clone()
-        curr_gripper = curr_gripper.clone()
-        pcd_obs = torch.permute(
-            self.normalize_pos(torch.permute(pcd_obs, [0, 1, 3, 4, 2]), task_id), [0, 1, 4, 2, 3]
-        )
-        curr_gripper[..., :3] = self.normalize_pos(curr_gripper[..., :3], task_id)
+        if curr_gripper is not None:
+            curr_gripper = curr_gripper.clone()
+            curr_gripper[..., :3] = self.normalize_pos(curr_gripper[..., :3], task_id)
 
         # Prepare inputs
         fixed_inputs = self.encode_inputs(
-            rgb_obs, pcd_obs, instruction, curr_gripper, task_id=task_id
+            obs, instruction, curr_gripper, task_id=task_id
         )
 
         # Condition on start-end pose
         B, nhist, D = curr_gripper.shape
-        cond_data = torch.zeros((B, self.chunk_size, D), device=rgb_obs.device)
+        cond_data = torch.zeros((B, self.chunk_size, D), device=curr_gripper.device)
         cond_mask = torch.zeros_like(cond_data)
         cond_mask = cond_mask.bool()
 
@@ -447,7 +390,6 @@ class DiffusionHead(nn.Module):
         super().__init__()
         self.use_instruction = use_instruction
         self.lang_enhanced = lang_enhanced
-        # We just assume use of 6D rotations
         rotation_dim = 6  # continuous 6D
 
         # Encoders
@@ -583,17 +525,18 @@ class DiffusionHead(nn.Module):
         # Predict position, rotation, opening
         traj_feats = einops.rearrange(traj_feats, "b l c -> l b c")
         context_feats = einops.rearrange(context_feats, "b l c -> l b c")
-        adaln_gripper_feats = einops.rearrange(adaln_gripper_feats, "b l c -> l b c")
+        if adaln_gripper_feats is not None:
+            adaln_gripper_feats = einops.rearrange(adaln_gripper_feats, "b l c -> l b c")
         pos_pred, rot_pred, openess_pred = self.prediction_head(
-            trajectory[..., :3],
-            traj_feats,
-            context[..., :3],
-            context_feats,
-            timestep,
-            adaln_gripper_feats,
-            fps_feats,
-            fps_pos,
-            instr_feats,
+            gripper_pcd=trajectory[..., :3],
+            gripper_features=traj_feats,
+            context_pcd=context[..., :3],
+            context_features=context_feats,
+            timesteps=timestep,
+            curr_gripper_features=adaln_gripper_feats,
+            sampled_context_features=fps_feats,
+            sampled_rel_context_pos=fps_pos,
+            instr_feats=instr_feats,
         )
         return torch.cat((pos_pred, rot_pred, openess_pred), -1)
 
@@ -677,10 +620,13 @@ class DiffusionHead(nn.Module):
         """
         time_feats = self.time_emb(timestep)
 
-        curr_gripper_features = einops.rearrange(curr_gripper_features, "npts b c -> b npts c")
-        curr_gripper_features = curr_gripper_features.flatten(1)
-        curr_gripper_feats = self.curr_gripper_emb(curr_gripper_features)
-        return time_feats + curr_gripper_feats
+        if curr_gripper_features is not None:
+            curr_gripper_features = einops.rearrange(curr_gripper_features, "npts b c -> b npts c")
+            curr_gripper_features = curr_gripper_features.flatten(1)
+            curr_gripper_feats = self.curr_gripper_emb(curr_gripper_features)
+            return time_feats + curr_gripper_feats
+        else:
+            return time_feats
 
     def predict_pos(self, features, rel_pos, time_embs, num_gripper, instr_feats):
         position_features = self.position_self_attn(

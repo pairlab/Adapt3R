@@ -7,8 +7,8 @@ make_unique_experiment_dir: true
 logging_folder: prior
 
 train_dataloader:
-  persistent_workers: true
-  # persistent_workers: true
+  persistent_workers: false
+  num_workers: 0
   pin_memory: false
   multiprocessing_context: null
 

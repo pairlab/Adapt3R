@@ -1,16 +1,76 @@
-# Ignore compiled files
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Project specific
+outputs/
+slurm_out/
+*.log
+wandb/
+.pytest_cache/
+.coverage
+htmlcov/
+cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Project specific directories
+data/
+data
+experiments/
+experiments
+zplots/
+samples/
+tmp/
+slurm_auto/
+src/
+scripts/plotting/outputs/
+scripts/plotting/evaluate_old/
+vis/
+
+# Build artifacts
 *.class
 *.o
 *.pyc
-
-# Ignore build output
-build/
-dist/
-
 *~
 .hydra
 *pyc
-*.egg-info/
 datasets
 datasets_scripted
 *videos
@@ -32,6 +92,7 @@ pace_models/*
 experiments_saved/
 ppo_experiments/
 slurm/
+
 # Ignore IDE and editor files
 .idea/
 .vscode/
@@ -57,11 +118,8 @@ docs/
 .DS_Store
 Thumbs.db
 
-data
-experiments
-zplots
-samples
-tmp
-slurm_auto
-src
-xslurm
+# UV virtual environment and cache
+.venv/
+.uv/
+uv.lock
+

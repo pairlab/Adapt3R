@@ -2,22 +2,25 @@ import os
 import time
 import hydra
 import wandb
+import logging
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 from tqdm import tqdm
-from pathlib import Path
-import warnings
-
 import torch
 import torch.nn as nn
 import adapt3r.utils.utils as utils
 from pyinstrument import Profiler
 from adapt3r.utils.logger import Logger
-import gc
+from pathlib import Path
+
+# Disable scientific notation for numpy and torch
+import numpy as np
+np.set_printoptions(suppress=True)
+torch.set_printoptions(sci_mode=False)
+
 
 OmegaConf.register_new_resolver("eval", eval, replace=True)
 os.environ["WANDB_INIT_TIMEOUT"] = "300"
-
 
 @hydra.main(config_path="../config", version_base=None)
 def main(cfg):
@@ -32,69 +35,75 @@ def main(cfg):
     model.to(device)
     model.train()
 
+    # logger.info("Computing normalization statistics")
+    norm_stats = utils.compute_norm_stats(cfg, model)
+
+    dataset = utils.make_dataset(cfg)
+
+    model.preprocess_dataset(dataset, use_tqdm=train_cfg.use_tqdm)
+    train_dataloader = instantiate(
+        cfg.train_dataloader, 
+        dataset=dataset)
+    
     # start training
     optimizers = model.get_optimizers()
-    schedulers = model.get_schedulers(optimizers)
+    schedulers = model.get_schedulers(optimizers,
+                                      total_steps=train_cfg.n_epochs*len(train_dataloader),
+                                      **cfg.algo.scheduler_kwargs)
 
     scaler = torch.cuda.amp.GradScaler(enabled=train_cfg.use_amp)
 
     experiment_dir, experiment_name = utils.get_experiment_dir(cfg)
     os.makedirs(experiment_dir, exist_ok=True)
+    
+    # Set up logging
+    logger = utils.setup_logger('training.log', experiment_dir)
+    total_params = sum(p.numel() for p in model.parameters())
+    logger.info(f'Total parameters: {total_params:,}')
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    logger.info(f'Trainable parameters: {trainable_params:,}')
+    logger.info(f"Starting experiment: {experiment_name}")
+    logger.info(f"Experiment directory: {experiment_dir}")
+    
+    config_file = Path(experiment_dir) / 'config.yaml'
+    OmegaConf.save(cfg, config_file)
+    logger.info(f"Saved configuration to: {config_file}")
 
-    start_epoch, steps, wandb_id, norm_stats = 0, 0, None, None
-    if train_cfg.resume and len(os.listdir(experiment_dir)) > 0: 
+    start_epoch, steps, wandb_id = 0, 0, None
+    if train_cfg.resume and len([x for x in os.listdir(experiment_dir) if 'pth' in x]) > 0:
         checkpoint_path = experiment_dir
     else: 
         checkpoint_path = cfg.checkpoint_path
     
     if checkpoint_path is not None:
         try:
-            checkpoint_path = utils.get_latest_checkpoint(checkpoint_path)
-        except IndexError:
-            print('failed to load checkpoint, starting from scratch')
-            checkpoint_path = None
-        if checkpoint_path is not None:
-            print(f'loading from checkpoint {checkpoint_path}')
-            state_dict = utils.load_state(checkpoint_path)
-            loaded_state_dict = state_dict['model']
+            state_dict = utils.load_checkpoint(checkpoint_path, logger=logger)
+            utils.soft_load_state_dict(model, state_dict['model'])
             
-            utils.soft_load_state_dict(model, loaded_state_dict)
-
-            # resuming training
+            logger.info('Loading optimizer and scheduler states')
             for optimizer, opt_state_dict in zip(optimizers, state_dict['optimizers']):
                 optimizer.load_state_dict(opt_state_dict)
             for scheduler, sch_state_dict in zip(schedulers, state_dict['schedulers']):
                 scheduler.load_state_dict(sch_state_dict)
             scaler.load_state_dict(state_dict['scaler'])
-
             start_epoch = state_dict['epoch']
             steps = state_dict['steps']
             wandb_id = state_dict['wandb_id']
             norm_stats = state_dict['norm_stats']
+        except Exception as e:
+            logger.warning(f'Failed to load checkpoint: {str(e)}, starting from scratch')
     else:
-        print('starting from scratch')
+        logger.info('Starting from scratch')
     
     if start_epoch >= train_cfg.n_epochs:
+        logger.info("Training already completed. Exiting.")
         exit(0)
 
-    dataset = instantiate(cfg.task.dataset)
-    model.preprocess_dataset(dataset, use_tqdm=train_cfg.use_tqdm)
-    train_dataloader = instantiate(
-        cfg.train_dataloader, 
-        dataset=dataset)
-    
-    if norm_stats is None:
-        norm_stats = utils.compute_norm_stats(dataset, 
-                                              normalize_action=train_cfg.normalize_action, 
-                                              normalize_obs=train_cfg.normalize_obs,
-                                              do_tqdm=train_cfg.use_tqdm)
     model.normalizer.fit(norm_stats)
+    
 
     if cfg.rollout.enabled:
         env_runner = instantiate(cfg.task.env_runner)
-
-    print(experiment_dir)
-    print(experiment_name)
 
     try:
         run = wandb.init(
@@ -104,8 +113,9 @@ def main(cfg):
             id=wandb_id,
             **cfg.logging
         )
-    except:
-        print('WARNING: wandb failed to initialize, running with logging disabled')
+        logger.info("Successfully initialized wandb")
+    except Exception as e:
+        logger.warning(f'wandb failed to initialize: {str(e)}. Running with logging disabled')
         log_cfg = OmegaConf.to_container(cfg.logging, resolve=True)
         log_cfg.update({'mode': 'disabled'})
         run = wandb.init(
@@ -116,7 +126,10 @@ def main(cfg):
             **log_cfg
         )
 
-    logger = Logger(train_cfg.log_interval)
+    do_first_eval = False
+    metric_logger = Logger(train_cfg.log_interval)
+    
+    logger.info("Starting training loop")
     for epoch in range(start_epoch, train_cfg.n_epochs + 1):
         t0 = time.time()
         model.train()
@@ -124,17 +137,17 @@ def main(cfg):
         if train_cfg.do_profile:
             profiler = Profiler()
             profiler.start()
+            
         for idx, data in enumerate(tqdm(train_dataloader, disable=not train_cfg.use_tqdm)):
             data = utils.map_tensor_to_device(data, device)
             
             for optimizer in optimizers:
                 optimizer.zero_grad()
 
-            with torch.autograd.set_detect_anomaly(False):
-                with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=train_cfg.use_amp):
-                    loss, info = model.compute_loss(data)
+            with torch.autocast(device_type='cuda', dtype=torch.bfloat16, enabled=train_cfg.use_amp):
+                loss, info = model.compute_loss(data)
 
-                scaler.scale(loss).backward()
+            scaler.scale(loss).backward()
             
             for optimizer in optimizers:
                 scaler.unscale_(optimizer)
@@ -148,17 +161,19 @@ def main(cfg):
             
             scaler.update()
 
-            info.update({
-                'epoch': epoch
-            })
+            info.update({'epoch': epoch})
             if train_cfg.grad_clip is not None:
                 info.update({
                     "grad_norm": grad_norm.item(),
-                })  
+                })
+            lr = optimizers[0].param_groups[0]["lr"]
+            info.update({"lr": lr})
             info = {cfg.logging_folder: info}
             training_loss += loss.item()
             steps += 1
-            logger.update(info, steps)
+            metric_logger.update(info, steps)
+
+            [scheduler.step() for scheduler in schedulers]
 
             if train_cfg.cut and idx > train_cfg.cut:
                 break
@@ -169,8 +184,9 @@ def main(cfg):
 
         training_loss /= len(train_dataloader)
         t1 = time.time()
-        print(
-            f"[info] Epoch: {epoch:3d} | train loss: {training_loss:5.5f} | time: {(t1-t0)/60:4.2f}"
+        epoch_time = (t1-t0)/60
+        logger.info(
+            f"Epoch {epoch:3d} | train loss: {training_loss:5.5f} | time: {epoch_time:4.2f} min"
         )
 
         model_checkpoint_name_latest = os.path.join(
@@ -212,22 +228,27 @@ def main(cfg):
                 'experiment_name': experiment_name,
                 'config': OmegaConf.to_container(cfg, resolve=True)
             }, model_checkpoint_name_ep)
+            logger.info(f"Saved checkpoint at epoch {epoch}")
 
         if cfg.rollout.enabled and \
-            (epoch > start_epoch) and \
+            (epoch > start_epoch or do_first_eval) and \
                 epoch % cfg.rollout.interval == 0:
+            model.eval()
+            logger.info("Starting evaluation rollout")
             rollout_results = env_runner.run(model, 
                                              n_video=cfg.rollout.n_video, 
                                              do_tqdm=train_cfg.use_tqdm,
-                                             fault_tolerant=True)
-            print(
-                f"[info]     success rate: {rollout_results['rollout']['overall_success_rate']:1.3f} \
-                    | environments solved: {rollout_results['rollout']['environments_solved']}")
-            logger.log(rollout_results, step=steps)
-        [scheduler.step() for scheduler in schedulers]
-    print("[info] finished learning\n")
+                                             fault_tolerant=False)
+            model.train()
+            success_rate = rollout_results['rollout']['overall_success_rate']
+            envs_solved = rollout_results['rollout']['environments_solved']
+            logger.info(
+                f"Evaluation results - success rate: {success_rate:1.3f} | environments solved: {envs_solved}"
+            )
+            metric_logger.log(rollout_results, step=steps)
+
+    logger.info("Training completed successfully")
     wandb.finish()
 
 if __name__ == "__main__":
     main()
-    

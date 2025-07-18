@@ -1,0 +1,10 @@
+_target_: adapt3r.algos.utils.data_augmentation.DataAugGroup
+_partial_: true
+aug_list:
+  - _target_: adapt3r.algos.utils.data_augmentation.BatchWiseImgColorJitterAug
+    _partial_: true
+    brightness: 0.3
+    contrast: 0.3
+    saturation: 0.3
+    hue: 0.3
+    epsilon: 0.1
