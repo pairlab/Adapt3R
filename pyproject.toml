@@ -21,7 +21,7 @@ dependencies = [
     "vector-quantize-pytorch==1.14.24",
     "wandb==0.17.0",
     "cmake==3.29.3",
-    "diffusers==0.30.0",
+    "diffusers==0.38.0",
     "pyinstrument==4.6.2",
     "moviepy==2.1.1",
     "tokenizers==0.19.1",
